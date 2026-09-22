@@ -1,0 +1,2150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Console — Oscar's Life Panel</title>
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Console">
+<meta name="theme-color" content="#16211B">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --bg: #0B1220;
+    --surface: #141C2E;
+    --surface-2: #1B2540;
+    --ink: #F1F5F9;
+    --ink-soft: #94A3B8;
+    --line: rgba(255,255,255,0.08);
+    --teal: #3B82F6;
+    --teal-ink: #BFD7FF;
+    --amber: #EAB308;
+    --amber-ink: #FDE68A;
+    --moss: #22C55E;
+    --moss-ink: #BBF7D0;
+    --clay: #EF4444;
+    --clay-ink: #FECACA;
+    --blue-chip: #3B82F6;
+    --yellow-chip: #CA8A04;
+    --green-chip: #16A34A;
+    --red-chip: #DC2626;
+    --radius: 16px;
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-body: 'IBM Plex Sans', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  :root[data-theme="light"] {
+    --bg: #EEF0EC;
+    --surface: #FFFFFF;
+    --surface-2: #E4E7EE;
+    --ink: #16211B;
+    --ink-soft: #55635B;
+    --line: #D3D7CD;
+    --teal: #2563EB;
+    --teal-ink: #1E3A8A;
+    --amber: #B8863B;
+    --amber-ink: #6E4E1F;
+    --moss: #4B7A3E;
+    --moss-ink: #2C4A22;
+    --clay: #A8412F;
+    --clay-ink: #6B2A1F;
+  }
+  :root[data-theme="dark"] {
+    --bg: #0B1220;
+    --surface: #141C2E;
+    --surface-2: #1B2540;
+    --ink: #F1F5F9;
+    --ink-soft: #94A3B8;
+    --line: rgba(255,255,255,0.08);
+    --teal: #3B82F6;
+    --teal-ink: #BFD7FF;
+    --amber: #EAB308;
+    --amber-ink: #FDE68A;
+    --moss: #22C55E;
+    --moss-ink: #BBF7D0;
+    --clay: #EF4444;
+    --clay-ink: #FECACA;
+  }
+  html, body { height: 100%; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 780px; margin: 0 auto; padding: 14px 16px calc(92px + env(safe-area-inset-bottom, 0px)); }
+
+  header.top {
+    padding-top: max(10px, env(safe-area-inset-top, 0px));
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; margin-bottom: 14px;
+  }
+  header.top .brand { font-family: var(--font-display); font-weight: 700; font-size: 1.4rem; letter-spacing: -0.02em; }
+  header.top .brand span { color: var(--teal); }
+  header.top .sub { font-size: 0.76rem; color: var(--ink-soft); }
+  .avatar {
+    width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, #3B82F6, #8B5CF6);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display); font-weight: 700; font-size: 0.9rem; color: #fff;
+  }
+
+  nav.panel {
+    display: grid; grid-template-columns: repeat(6, 1fr);
+    gap: 2px; position: fixed; left: 12px; right: 12px;
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px)); z-index: 40;
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+    padding: 6px; border-radius: 18px; border: 1px solid var(--line);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+    max-width: 780px; margin: 0 auto;
+  }
+  nav.panel button {
+    font-family: var(--font-display); font-weight: 600; font-size: 0.64rem;
+    border: none; background: transparent; color: var(--ink-soft);
+    padding: 8px 2px 7px; border-radius: 12px; cursor: pointer;
+    transition: background .15s, color .15s, transform .15s;
+  }
+  nav.panel button.active { background: var(--surface-2); color: var(--teal-ink); }
+  nav.panel button.active .ico { transform: translateY(-1px); }
+  nav.panel button .ico { display: block; font-size: 1.15rem; margin-bottom: 2px; transition: transform .15s; }
+  nav.panel button .dot { display: none; }
+
+  section.tab { display: none; }
+  section.tab.active { display: block; animation: rise .25s ease; }
+  @keyframes rise { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 16px; margin-bottom: 14px;
+  }
+  .card h2 {
+    font-family: var(--font-display); font-size: 1.02rem; margin: 0 0 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card h2 .tag { font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-soft); font-weight: 500; }
+  .card p.hint { color: var(--ink-soft); font-size: 0.82rem; margin: -4px 0 12px; line-height: 1.5; }
+
+  label { display: block; font-size: 0.76rem; color: var(--ink-soft); margin: 0 0 4px; }
+  input, select, textarea, button.btn {
+    font-family: var(--font-body); font-size: 0.92rem;
+    border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px;
+    background: var(--bg); color: var(--ink); width: 100%;
+  }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--teal); outline-offset: 1px; }
+  .row { display: grid; gap: 10px; margin-bottom: 10px; }
+  .row.cols-2 { grid-template-columns: 1fr 1fr; }
+  .row.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .field { display: flex; flex-direction: column; }
+
+  button.btn {
+    cursor: pointer; font-weight: 600; width: auto; text-align: center;
+    background: var(--ink); color: var(--surface); border-color: var(--ink);
+    padding: 9px 16px; transition: opacity .15s;
+  }
+  button.btn:active { opacity: .75; }
+  button.btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+  button.btn.small { padding: 5px 10px; font-size: 0.78rem; }
+  button.btn.teal { background: var(--teal); border-color: var(--teal); }
+  button.btn.moss { background: var(--moss); border-color: var(--moss); }
+  button.btn.amber { background: var(--amber); border-color: var(--amber); }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); }
+  th { font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-soft); font-weight: 600; text-transform: none; }
+  td.num, th.num { text-align: right; font-family: var(--font-mono); }
+  .tablewrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  .chip { display: inline-flex; align-items: center; gap: 5px; font-size: 0.72rem; font-family: var(--font-mono); padding: 2px 7px; border-radius: 20px; white-space: nowrap; }
+  .chip .sw { width: 7px; height: 7px; border-radius: 50%; }
+  .chip.blue { background: color-mix(in srgb, var(--blue-chip) 16%, transparent); color: var(--blue-chip); }
+  .chip.yellow { background: color-mix(in srgb, var(--yellow-chip) 20%, transparent); color: var(--amber-ink); }
+  .chip.green { background: color-mix(in srgb, var(--green-chip) 18%, transparent); color: var(--moss-ink); }
+  .chip.red { background: color-mix(in srgb, var(--red-chip) 16%, transparent); color: var(--clay-ink); }
+  .chip.grey { background: var(--surface-2); color: var(--ink-soft); }
+
+  .stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 4px; }
+  .stat { background: var(--surface-2); border-radius: 8px; padding: 12px; }
+  .stat .num { font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; line-height: 1.1; }
+  .stat .lbl { font-size: 0.72rem; color: var(--ink-soft); margin-top: 2px; }
+
+  .bar-list .bar-item { margin-bottom: 9px; }
+  .bar-list .bar-item .bhead { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 3px; }
+  .bar-track { height: 7px; background: var(--surface-2); border-radius: 6px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 6px; }
+
+  .del { background: none; border: none; color: var(--clay); cursor: pointer; font-size: 0.78rem; padding: 2px 4px; width: auto; }
+  .empty { color: var(--ink-soft); font-size: 0.85rem; padding: 10px 0; text-align: center; }
+
+  ul.ideas { padding-left: 18px; margin: 0; }
+  ul.ideas li { margin-bottom: 10px; line-height: 1.5; font-size: 0.9rem; }
+  ul.ideas b { font-family: var(--font-display); font-weight: 600; }
+
+  .calgrid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+  .calgrid .dow { font-family: var(--font-mono); font-size: 0.62rem; color: var(--ink-soft); text-align: center; padding-bottom: 4px; }
+  .calgrid .cell { min-height: 52px; background: var(--surface-2); border-radius: 6px; padding: 4px 3px; font-size: 0.62rem; }
+  .calgrid .cell.blank { background: transparent; }
+  .calgrid .cell .dnum { font-family: var(--font-mono); color: var(--ink-soft); margin-bottom: 3px; }
+  .calgrid .cell .ev { border-radius: 4px; padding: 1px 3px; margin-bottom: 2px; font-size: 0.58rem; line-height: 1.3; color: #fff; }
+  .calgrid .cell .ev.blue { background: var(--blue-chip); }
+  .calgrid .cell .ev.yellow { background: var(--yellow-chip); color: #3a2e00; }
+  .calgrid .cell .ev.green { background: var(--green-chip); }
+  .calgrid .cell .ev.red { background: var(--red-chip); }
+  .calgrid .cell .ev.grey { background: var(--ink-soft); }
+
+  .theme-toggle { border: 1px solid var(--line); background: var(--surface); border-radius: 20px; padding: 4px 10px; font-size: 0.72rem; cursor: pointer; color: var(--ink-soft); }
+  @media print {
+    nav.panel, header.top, .no-print, #loadingScreen, #welcomeScreen { display: none !important; }
+    body { background: #fff; color: #000; }
+  }
+
+  /* ---------- loading + welcome overlays ---------- */
+  body { background: var(--bg); }
+  body::before {
+    content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background: radial-gradient(ellipse 90% 45% at 50% -10%, rgba(59,130,246,0.20), transparent);
+  }
+  .overlay {
+    position: fixed; inset: 0; z-index: 200;
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    padding: 32px 26px; padding-top: max(32px, env(safe-area-inset-top, 0px));
+    background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(59,130,246,0.28), transparent), var(--bg);
+    transition: opacity .5s ease, visibility .5s ease;
+  }
+  .overlay.hide { opacity: 0; visibility: hidden; pointer-events: none; }
+
+  #loadingScreen .mark {
+    width: 64px; height: 64px; border-radius: 20px; margin: 0 auto 18px;
+    background: linear-gradient(135deg, #3B82F6, #8B5CF6);
+    display: flex; align-items: center; justify-content: center; font-size: 30px;
+    animation: pulseMark 1.4s ease-in-out infinite;
+  }
+  @keyframes pulseMark { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08) rotate(6deg); } }
+  #loadingScreen .ltrack { width: 200px; height: 5px; border-radius: 6px; background: var(--surface-2); overflow: hidden; margin: 18px auto 10px; }
+  #loadingScreen .lfill { height: 100%; width: 0%; border-radius: 6px; background: linear-gradient(90deg, #3B82F6, #8B5CF6); animation: loadFill 1.6s ease forwards; }
+  @keyframes loadFill { to { width: 100%; } }
+  #loadingScreen .ltext { font-size: 0.8rem; color: var(--ink-soft); font-family: var(--font-mono); min-height: 1.2em; }
+  #loadingScreen .lbrand { font-family: var(--font-display); font-weight: 700; font-size: 1.3rem; margin-bottom: 4px; }
+
+  #welcomeScreen .wbox { max-width: 380px; }
+  #welcomeScreen .wave { font-size: 2.2rem; display: block; margin-bottom: 6px; }
+  #welcomeScreen h1 { font-family: var(--font-display); font-size: 1.9rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 10px; }
+  #welcomeScreen p { color: var(--ink-soft); font-size: 0.94rem; line-height: 1.55; margin-bottom: 22px; }
+  #welcomeScreen .wchips { display: flex; gap: 7px; justify-content: center; flex-wrap: wrap; margin-bottom: 26px; }
+  #welcomeScreen .enterBtn {
+    background: linear-gradient(135deg, #3B82F6, #2563EB); color: #fff; border: none;
+    font-family: var(--font-display); font-weight: 700; font-size: 0.98rem;
+    padding: 13px 28px; border-radius: 14px; cursor: pointer; width: auto;
+    box-shadow: 0 12px 28px rgba(59,130,246,0.35);
+  }
+
+/* ===== v2 visual upgrade ===== */
+:root{
+  --accent:#5B8CFF;
+  --accent-2:#7C5CFF;
+  --panel:rgba(255,255,255,.045);
+  --glow:rgba(91,140,255,.18);
+}
+body{
+  background:
+    radial-gradient(900px 420px at 50% -120px, rgba(91,140,255,.18), transparent 65%),
+    var(--bg);
+}
+.wrap{max-width:900px;padding-left:14px;padding-right:14px}
+.card{
+  border-radius:20px;
+  padding:18px;
+  box-shadow:0 8px 28px rgba(0,0,0,.12);
+}
+.card h2{font-size:1.05rem}
+.hero-card{
+  padding:20px;
+  background:linear-gradient(145deg,rgba(91,140,255,.16),rgba(124,92,255,.08) 55%,var(--surface) 100%);
+  border-color:rgba(91,140,255,.25);
+}
+.hero-title{font-family:var(--font-display);font-size:1.55rem;font-weight:700;letter-spacing:-.035em;margin:0 0 5px}
+.hero-sub{color:var(--ink-soft);font-size:.82rem;line-height:1.45}
+.quick-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:15px}
+.quick-stat{background:rgba(0,0,0,.12);border:1px solid var(--line);border-radius:14px;padding:11px}
+.quick-stat .qnum{font-family:var(--font-display);font-weight:700;font-size:1.15rem}
+.quick-stat .qlbl{font-size:.66rem;color:var(--ink-soft);margin-top:2px}
+.shift-timeline{display:grid;gap:9px}
+.shift-card{
+  display:grid;grid-template-columns:52px 1fr auto;gap:11px;align-items:center;
+  background:var(--surface-2);border:1px solid var(--line);border-radius:16px;padding:11px;
+}
+.shift-day{font-family:var(--font-display);font-weight:700;text-align:center}
+.shift-day small{display:block;font-size:.62rem;color:var(--ink-soft);font-weight:500;text-transform:uppercase}
+.shift-main{min-width:0}
+.shift-time{font-family:var(--font-display);font-weight:700;font-size:.98rem}
+.shift-place{font-size:.72rem;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.shift-hours{font-family:var(--font-mono);font-size:.75rem;color:var(--teal-ink)}
+.rota-actions{display:flex;gap:8px;flex-wrap:wrap}
+.section-label{font-family:var(--font-mono);font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);margin:0 0 9px}
+.site-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.site-card{border:1px solid var(--line);border-radius:15px;padding:12px;background:var(--surface-2)}
+.site-card b{font-family:var(--font-display);font-size:.86rem}
+.site-card span{display:block;color:var(--ink-soft);font-size:.68rem;margin-top:3px}
+.ai-box{
+  border:1px solid rgba(124,92,255,.32);
+  background:linear-gradient(145deg,rgba(124,92,255,.12),rgba(91,140,255,.07));
+  border-radius:20px;padding:17px;
+}
+.ai-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.ai-badge{font-family:var(--font-mono);font-size:.62rem;padding:5px 8px;border-radius:999px;background:rgba(124,92,255,.18);color:#BDB0FF}
+.ai-example{font-size:.7rem;color:var(--ink-soft);line-height:1.45;margin-top:8px}
+.ai-result{margin-top:12px}
+.ai-action{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  background:var(--surface-2);border:1px solid var(--line);border-radius:14px;padding:11px;margin-top:8px;
+}
+.ai-action b{font-family:var(--font-display);font-size:.82rem}
+.ai-action span{display:block;color:var(--ink-soft);font-size:.7rem;margin-top:2px}
+.fuel-hero{
+  background:linear-gradient(145deg,rgba(234,179,8,.16),rgba(234,179,8,.04) 52%,var(--surface) 100%);
+  border-color:rgba(234,179,8,.22);
+}
+.fuel-best{
+  display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;
+  background:var(--surface-2);border-radius:16px;padding:14px;margin-top:12px;
+}
+.fuel-best .price{font-family:var(--font-display);font-size:1.7rem;font-weight:700}
+.fuel-best .station{font-weight:700;font-size:.9rem}
+.fuel-best .meta{font-size:.7rem;color:var(--ink-soft);margin-top:3px}
+.fuel-list{display:grid;gap:8px;margin-top:10px}
+.fuel-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.fuel-row:last-child{border-bottom:0}
+.fuel-row .name{font-weight:600;font-size:.82rem}
+.fuel-row .distance{font-size:.67rem;color:var(--ink-soft)}
+.fuel-row .price{font-family:var(--font-mono);font-weight:600}
+.live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#22C55E;box-shadow:0 0 0 4px rgba(34,197,94,.12);margin-right:6px}
+.mini-note{font-size:.67rem;color:var(--ink-soft);line-height:1.45}
+.settings-row{display:flex;gap:8px;align-items:end}
+.settings-row .field{flex:1}
+@media(max-width:560px){
+  .quick-grid,.site-grid{grid-template-columns:1fr 1fr}
+  .shift-card{grid-template-columns:45px 1fr}
+  .shift-hours{grid-column:2}
+  .fuel-best{grid-template-columns:1fr auto}
+}
+
+
+  /* ===== Home redesign ===== */
+  .home-shell{position:relative;overflow:hidden;padding:24px;background:
+    radial-gradient(500px 260px at 90% 0%,rgba(91,140,255,.22),transparent 65%),
+    linear-gradient(145deg,rgba(91,140,255,.12),rgba(124,92,255,.08) 48%,var(--surface) 100%);
+    border-color:rgba(91,140,255,.22);}
+  .home-shell:after{content:"";position:absolute;width:220px;height:220px;border:1px solid rgba(255,255,255,.07);border-radius:50%;right:-100px;top:-100px;box-shadow:0 0 0 28px rgba(255,255,255,.018),0 0 0 58px rgba(255,255,255,.012);pointer-events:none}
+  .home-kicker{font-family:var(--font-mono);font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;color:var(--teal-ink);margin-bottom:7px}
+  .home-title{font-family:var(--font-display);font-size:2.15rem;font-weight:700;letter-spacing:-.05em;line-height:1.02;margin:0}
+  .home-date{font-size:.78rem;color:var(--ink-soft);margin-top:7px}
+  .home-statstrip{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:20px}
+  .home-stat{background:rgba(0,0,0,.13);border:1px solid var(--line);border-radius:14px;padding:11px}
+  .home-stat b{font-family:var(--font-display);font-size:1.05rem}
+  .home-stat span{display:block;font-size:.64rem;color:var(--ink-soft);margin-top:2px}
+  .home-section-head{display:flex;justify-content:space-between;align-items:end;gap:10px;margin:18px 2px 9px}
+  .home-section-head h2{margin:0;font-family:var(--font-display);font-size:1rem}
+  .home-section-head span{font-size:.68rem;color:var(--ink-soft)}
+  .home-actions{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  .home-tile{position:relative;min-height:122px;border:1px solid var(--line);background:linear-gradient(145deg,var(--surface-2),rgba(255,255,255,.025));border-radius:18px;padding:15px;text-align:left;cursor:pointer;color:var(--ink);display:flex;flex-direction:column;justify-content:space-between;transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease}
+  .home-tile:hover{transform:translateY(-3px);border-color:rgba(91,140,255,.5);box-shadow:0 12px 25px rgba(0,0,0,.16)}
+  .home-tile .home-icon{font-size:1.35rem}.home-tile b{font-family:var(--font-display);font-size:.94rem;margin-top:8px}.home-tile small{color:var(--ink-soft);font-size:.67rem;line-height:1.35;margin-top:2px}
+  .home-arrow{position:absolute;right:13px;top:13px;color:var(--ink-soft);font-size:.85rem}
+  @media(max-width:560px){.home-title{font-size:1.9rem}.home-statstrip{gap:6px}.home-stat{padding:9px}.home-actions{grid-template-columns:1fr 1fr}}
+
+  /* ===== Hull FC + money automation upgrade ===== */
+
+  .home-tile{border:1px solid var(--line);background:var(--surface-2);border-radius:16px;padding:14px;text-align:left;cursor:pointer;color:var(--ink);display:flex;flex-direction:column;gap:4px;min-height:108px;transition:transform .15s ease,border-color .15s ease}
+  .home-tile:hover{transform:translateY(-2px);border-color:var(--teal)}
+  .home-tile .home-icon{font-size:1.25rem;margin-bottom:4px}.home-tile b{font-family:var(--font-display);font-size:.9rem}.home-tile small{color:var(--ink-soft);font-size:.66rem;line-height:1.35}
+  .home-actions{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}
+  @media(max-width:1100px){.home-actions{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  @media(max-width:650px){.home-actions{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  .fc-season-switch{display:flex;gap:7px;align-items:center;flex-wrap:wrap;padding:10px;background:var(--surface-2);border:1px solid var(--line);border-radius:14px}.fc-season-switch .hint{flex:1;min-width:220px}
+  .fc-hero{background:linear-gradient(145deg,rgba(0,0,0,.18),rgba(255,255,255,.03)),var(--surface);border-color:rgba(255,255,255,.14)}
+  .fc-title{font-family:var(--font-display);font-size:1.55rem;font-weight:700;letter-spacing:-.035em;margin:0 0 4px}
+  .fc-sub{color:var(--ink-soft);font-size:.78rem;line-height:1.45}
+  .fc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:14px}
+  .fc-stat{background:var(--surface-2);border:1px solid var(--line);border-radius:14px;padding:11px}
+  .fc-stat b{font-family:var(--font-display);font-size:1.15rem}
+  .fc-stat span{display:block;color:var(--ink-soft);font-size:.66rem;margin-top:2px}
+  .fc-list{display:grid;gap:8px}
+  .fc-item{padding:12px;border:1px solid var(--line);background:var(--surface-2);border-radius:14px}
+  .fc-item-top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+  .fc-item b{font-family:var(--font-display);font-size:.86rem}
+  .fc-item p{margin:5px 0 0;color:var(--ink-soft);font-size:.72rem;line-height:1.45}
+  .fc-meta{font-size:.64rem;color:var(--ink-soft);margin-top:6px}
+  .fc-tabs{display:flex;gap:6px;overflow:auto;margin-bottom:10px}
+  .fc-tabs button{white-space:nowrap;width:auto;padding:7px 10px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--ink-soft);cursor:pointer;font-size:.72rem}
+  .fc-tabs button.active{background:var(--surface-2);color:var(--ink)}
+  .fc-panel{display:none}.fc-panel.active{display:block}
+  .player-card{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px;background:var(--surface-2);border:1px solid var(--line);border-radius:14px;margin-bottom:8px;cursor:pointer}
+  .player-card b{font-family:var(--font-display);font-size:.84rem}.player-card span{display:block;color:var(--ink-soft);font-size:.67rem;margin-top:2px}
+  .money-hero{background:linear-gradient(145deg,rgba(34,197,94,.13),rgba(91,140,255,.08),var(--surface));border-color:rgba(34,197,94,.2)}
+  .money-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+  .money-kpi{background:rgba(0,0,0,.12);border:1px solid var(--line);border-radius:13px;padding:10px}.money-kpi b{font-family:var(--font-display);font-size:1.05rem}.money-kpi span{display:block;color:var(--ink-soft);font-size:.63rem;margin-top:2px}
+  .automation{display:grid;gap:8px}.automation-row{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:11px;background:var(--surface-2);border:1px solid var(--line);border-radius:14px}.automation-row b{font-family:var(--font-display);font-size:.82rem}.automation-row span{display:block;color:var(--ink-soft);font-size:.68rem;margin-top:2px}
+  @media(max-width:560px){.fc-grid,.money-kpis{grid-template-columns:1fr 1fr}.fc-grid .fc-stat:last-child{grid-column:span 2}}
+
+</style>
+</head>
+<body>
+
+<button id="installAppBtn" hidden style="position:fixed;right:14px;bottom:14px;z-index:9999;border:1px solid var(--line);border-radius:999px;padding:10px 14px;background:var(--surface-2);color:var(--ink);font:600 .78rem var(--font-display);box-shadow:0 8px 30px rgba(0,0,0,.3);cursor:pointer">＋ Add Console</button>
+
+<div class="overlay" id="loadingScreen">
+  <div>
+    <div class="mark">🧭</div>
+    <div class="lbrand">Console</div>
+    <div class="ltrack"><div class="lfill"></div></div>
+    <div class="ltext" id="loadingText">Warming up the console…</div>
+  </div>
+</div>
+
+<div class="overlay hide" id="welcomeScreen">
+  <div class="wbox">
+    <span class="wave">👋</span>
+    <h1>Welcome, Oscar</h1>
+    <p>Your shifts, your money and your fuel — sorted in one place, kept on your phone, answering to nobody. No accounts, no ads, no one else's data mixed in with yours. Just your week, laid out properly.</p>
+    <div class="wchips">
+      <span class="chip blue"><span class="sw"></span>Rota</span>
+      <span class="chip green"><span class="sw"></span>Money</span>
+      <span class="chip yellow"><span class="sw"></span>Fuel</span>
+    </div>
+    <button class="enterBtn" id="enterBtn">Enter Console →</button>
+  </div>
+</div>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="brand">Console<span>.</span></div>
+      <div class="sub">shifts · money · fuel — one place</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="theme-toggle no-print" id="themeToggle">theme</button>
+      <div class="avatar" title="Oscar">O</div>
+    </div>
+  </header>
+
+  <nav class="panel no-print">
+    <button data-tab="home" class="active"><span class="ico">⌂</span>Home</button>
+    <button data-tab="rota"><span class="ico">🗓️</span>Rota</button>
+    <button data-tab="finance"><span class="ico">💷</span>Money</button>
+    <button data-tab="hull"><span class="ico">⚫</span>Hull FC</button>
+    <button data-tab="fuel"><span class="ico">⛽</span>Fuel</button>
+    <button data-tab="extras"><span class="ico">✨</span>Extras</button>
+    <button data-tab="assistant"><span class="ico">✦</span>AI</button>
+  </nav>
+
+
+
+  <!-- HOME / SECTION SELECTOR -->
+  <section class="tab active" id="tab-home">
+    <div class="card home-shell">
+      <div class="home-kicker">Console / Control centre</div>
+      <h1 class="home-title">Everything in one place.</h1>
+      <div class="home-date" id="homeDate">—</div>
+      <div class="home-statstrip">
+        <div class="home-stat"><b id="homeNextShift">—</b><span>next shift</span></div>
+        <div class="home-stat"><b id="homeWeekHours">0h</b><span>hours this week</span></div>
+        <div class="home-stat"><b id="homeHullUpdate">—</b><span>Hull FC refresh</span></div>
+      </div>
+    </div>
+    <div class="home-section-head"><h2>Open a section</h2><span>Tap to jump in</span></div>
+    <div class="home-actions">
+      <button class="home-tile" data-home-tab="rota"><span class="home-arrow">↗</span><span class="home-icon">🗓️</span><b>Rota</b><small>Shifts, calendar and hours</small></button>
+      <button class="home-tile" data-home-tab="finance"><span class="home-arrow">↗</span><span class="home-icon">💷</span><b>Money</b><small>Spending, bills and savings</small></button>
+      <button class="home-tile" data-home-tab="hull"><span class="home-arrow">↗</span><span class="home-icon">⚫</span><b>Hull FC</b><small>Squads, stats, fixtures and match-day betting</small></button>
+      <button class="home-tile" data-home-tab="fuel"><span class="home-arrow">↗</span><span class="home-icon">⛽</span><b>Fuel</b><small>Live prices, targets and fill-ups</small></button>
+      <button class="home-tile" data-home-tab="extras"><span class="home-arrow">↗</span><span class="home-icon">✨</span><b>Extras</b><small>Bills, notes and useful tools</small></button>
+      <button class="home-tile" data-home-tab="assistant"><span class="home-arrow">↗</span><span class="home-icon">✦</span><b>Console AI</b><small>Turn quick messages into records</small></button>
+    </div>
+  </section>
+
+  <!-- ROTA / TIMESHEET TAB -->
+  <section class="tab" id="tab-rota">
+    <div class="card hero-card">
+      <div class="hero-title">Your rota, at a glance</div>
+      <div class="hero-sub">A proper weekly view instead of a spreadsheet dump. Add shifts, jump into a day, and see your hours building automatically.</div>
+      <div class="quick-grid">
+        <div class="quick-stat"><div class="qnum" id="rotaNext">—</div><div class="qlbl">next shift</div></div>
+        <div class="quick-stat"><div class="qnum" id="rotaWeekHrs">0h</div><div class="qlbl">this week</div></div>
+        <div class="quick-stat"><div class="qnum" id="rotaWeekShifts">0</div><div class="qlbl">shifts this week</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-label">Upcoming</div>
+      <div id="rotaTimeline" class="shift-timeline"></div>
+      <div id="rotaTimelineEmpty" class="empty" style="display:none">No upcoming shifts. Add one below.</div>
+    </div>
+
+    <div class="card">
+      <div class="btn-row" style="justify-content:space-between;align-items:center">
+        <h2 style="margin:0">Add a shift</h2>
+        <span class="chip blue"><span class="sw"></span>rota</span>
+      </div>
+      <div class="row cols-2" style="margin-top:12px">
+        <div class="field"><label>Date</label><input type="date" id="shiftDate"></div>
+        <div class="field"><label>Location</label>
+          <select id="shiftLoc">
+            <option value="Winifred Holtby & Tweendykes">Winifred Holtby & Tweendykes</option>
+            <option value="The Marvell College">The Marvell College</option>
+            <option value="Kingswood Academy">Kingswood Academy</option>
+            <option value="Annual Leave">Annual Leave (A/L)</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="row cols-2">
+        <div class="field"><label>Start</label><input type="time" id="shiftStart"></div>
+        <div class="field"><label>End</label><input type="time" id="shiftEnd"></div>
+      </div>
+      <div class="rota-actions">
+        <button class="btn teal" id="addShiftBtn">Add shift</button>
+        <button class="btn ghost" id="jumpTodayBtn">Today</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-label">Your sites</div>
+      <div id="rotaSites" class="site-grid"></div>
+    </div>
+
+    <div class="card">
+      <div class="btn-row" style="justify-content:space-between;align-items:center">
+        <h2 style="margin:0">Calendar</h2>
+        <div class="btn-row" style="margin:0">
+          <button class="btn ghost small" id="calPrev">◀</button>
+          <span id="calLabel" style="font-family:var(--font-display);font-weight:600;min-width:120px;text-align:center"></span>
+          <button class="btn ghost small" id="calNext">▶</button>
+        </div>
+      </div>
+      <p class="hint">Tap a day to add, change or remove a shift.</p>
+      <div id="calGrid"></div>
+      <div id="calEditor" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span id="calEditorDate" style="font-family:var(--font-display);font-weight:600"></span>
+          <button class="del no-print" id="calEditorClose">close</button>
+        </div>
+        <div class="row cols-2">
+          <div class="field"><label>Location</label>
+            <select id="calEditLoc">
+              <option value="Winifred Holtby & Tweendykes">Winifred Holtby & Tweendykes</option>
+              <option value="The Marvell College">The Marvell College</option>
+              <option value="Kingswood Academy">Kingswood Academy</option>
+              <option value="Annual Leave">Annual Leave (A/L)</option>
+              <option value="Other">Other</option>
+            </select>
+          </div><div></div>
+        </div>
+        <div class="row cols-2">
+          <div class="field"><label>Start (blank for A/L)</label><input type="time" id="calEditStart"></div>
+          <div class="field"><label>End</label><input type="time" id="calEditEnd"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn teal small" id="calEditSave">Save shift</button>
+          <button class="btn ghost small" id="calEditDelete" style="display:none">Remove shift</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Annual leave</h2>
+      <div class="row cols-2">
+        <div class="field"><label>Allowance this year (days)</label><input type="number" id="alAllowance" placeholder="e.g. 28"></div>
+        <div class="field" style="justify-content:flex-end"><button class="btn ghost" id="alSaveBtn">Save</button></div>
+      </div>
+      <div class="stat-row">
+        <div class="stat"><div class="num" id="alUsed">0</div><div class="lbl">days used this year</div></div>
+        <div class="stat"><div class="num" id="alLeft">—</div><div class="lbl">days remaining</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Timesheet tools</h2>
+      <div class="row cols-2">
+        <div class="field"><label>Trailing weeks</label><input type="number" id="avgWeeks" value="4" min="1"></div>
+        <div class="field" style="justify-content:flex-end"><button class="btn ghost" id="avgCalcBtn">Calculate average</button></div>
+      </div>
+      <div class="stat" style="margin-top:4px"><div class="num" id="avgResult">—</div><div class="lbl">avg hrs / week, up to today</div></div>
+      <div style="margin-top:16px">
+        <div class="row cols-2">
+          <div class="field"><label>From</label><input type="date" id="tsFrom"></div>
+          <div class="field"><label>To</label><input type="date" id="tsTo"></div>
+        </div>
+        <div class="row cols-2">
+          <div class="field"><label>Hourly rate (£, optional)</label><input type="number" step="0.01" id="tsRate" placeholder="e.g. 12.60"></div>
+          <div class="field" style="justify-content:flex-end"><button class="btn moss" id="buildTsBtn">Generate timesheet</button></div>
+        </div>
+        <div id="tsResult"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <details>
+        <summary style="cursor:pointer;font-family:var(--font-display);font-weight:600">All recorded shifts</summary>
+        <div class="tablewrap" style="margin-top:12px">
+          <table id="shiftTable">
+            <thead><tr><th>Date</th><th>Location</th><th class="num">Start</th><th class="num">End</th><th class="num">Hrs</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="empty" id="shiftEmpty" style="display:none">No shifts yet.</div>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2>Import rota</h2>
+      <p class="hint">Import an .xlsx/.xls/.csv with Date, Start, End and Location columns. The AI tab can also turn pasted rota text into shifts.</p>
+      <input type="file" id="fileImport" accept=".xlsx,.xls,.csv">
+      <p class="hint" id="importStatus" style="margin-top:8px"></p>
+    </div>
+  </section>
+
+  <!-- FINANCE TAB -->
+  <section class="tab" id="tab-finance">
+    <div class="card">
+      <h2>Add a transaction</h2>
+      <div class="row cols-2">
+        <div class="field"><label>Date</label><input type="date" id="txDate"></div>
+        <div class="field"><label>Type</label>
+          <select id="txType"><option value="expense">Expense</option><option value="income">Income</option></select>
+        </div>
+      </div>
+      <div class="row cols-2">
+        <div class="field"><label>Amount (£)</label><input type="number" step="0.01" id="txAmount" placeholder="0.00"></div>
+        <div class="field"><label>Category</label>
+          <select id="txCategory">
+            <option>Wages</option><option>Rent/Housing</option><option>Food</option><option>Transport</option>
+            <option>Fuel</option><option>Bills</option><option>Leisure</option><option>Savings</option><option>Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:10px"><label>Note</label><input type="text" id="txNote" placeholder="optional"></div>
+      <button class="btn moss" id="addTxBtn">Add transaction</button>
+    </div>
+
+    <div class="card">
+      <h2>This month</h2>
+      <div class="stat-row">
+        <div class="stat"><div class="num" id="mIncome">£0</div><div class="lbl">income</div></div>
+        <div class="stat"><div class="num" id="mExpense">£0</div><div class="lbl">expenses</div></div>
+      </div>
+      <div class="stat" style="margin-top:10px">
+        <div class="num" id="mBalance">£0</div><div class="lbl">balance this month</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Spend by category <span class="tag">this month, vs. cap if set</span></h2>
+      <div class="bar-list" id="catBars"></div>
+      <div class="empty" id="catEmpty" style="display:none">No expenses logged this month yet.</div>
+    </div>
+
+    <div class="card">
+      <h2>Budget caps</h2>
+      <p class="hint">Set a monthly ceiling per category — bars above turn amber near the cap and red over it.</p>
+      <div id="budgetInputs"></div>
+      <button class="btn ghost" id="saveBudgetsBtn">Save caps</button>
+    </div>
+
+    <div class="card">
+      <h2>Savings goal</h2>
+      <div class="row cols-2">
+        <div class="field"><label>What for</label><input type="text" id="sgName" placeholder="e.g. Car"></div>
+        <div class="field"><label>Target £</label><input type="number" step="0.01" id="sgTarget"></div>
+      </div>
+      <div class="row cols-2">
+        <div class="field"><label>Saved so far £</label><input type="number" step="0.01" id="sgCurrent"></div>
+        <div class="field" style="justify-content:flex-end"><button class="btn ghost" id="sgSaveBtn">Save goal</button></div>
+      </div>
+      <div id="sgProgress"></div>
+    </div>
+
+
+    <div class="card money-hero">
+      <div class="hero-title">Money autopilot</div>
+      <div class="hero-sub">Turn the numbers you already enter into a simple forward view — upcoming bills, expected rota pay, safe-to-spend estimate and savings pacing.</div>
+      <div class="money-kpis">
+        <div class="money-kpi"><b id="money30d">£0</b><span>30-day projected balance</span></div>
+        <div class="money-kpi"><b id="moneyBills">£0</b><span>next 30-day bills</span></div>
+        <div class="money-kpi"><b id="moneyPay">£0</b><span>estimated rota pay</span></div>
+      </div>
+    </div>
+
+    <div class="card money-ai-card">
+      <div class="fc-item-top"><div><h2 style="margin-bottom:4px">Money AI sorter</h2><div class="hint" style="margin:0">Just tell it what you spent. It works out the amount, category and note, then lets you add everything in one go.</div></div><span class="ai-badge">LOCAL • PRIVATE</span></div>
+      <textarea id="moneyAIInput" rows="4" style="margin-top:12px" placeholder="Try: £18.50 on food at McDonald's
+£42 petrol Tesco
+£9.99 Netflix
+Spent 12 quid on a taxi"></textarea>
+      <div class="btn-row"><button class="btn teal" id="moneyAIAnalyseBtn">Sort my spending</button><button class="btn ghost" id="moneyAIClearBtn">Clear</button></div>
+      <div id="moneyAIResult" class="ai-result"></div>
+    </div>
+
+    <div class="card">
+      <h2>Automations</h2>
+      <div class="automation">
+        <div class="automation-row"><div><b>Recurring bill forecast</b><span>Projects monthly, weekly and annual bills into the next 30 days.</span></div><button class="btn ghost small" id="moneyRunBtn">Run now</button></div>
+        <div class="automation-row"><div><b>Rota → pay estimate</b><span>Uses your upcoming shifts and the timesheet rate if you have entered one.</span></div><button class="btn ghost small" id="moneyRateBtn">Set rate</button></div>
+        <div class="automation-row"><div><b>Overspend guard</b><span>Flags categories approaching their saved monthly caps.</span></div><span class="chip grey" id="moneyGuard">No alerts</span></div>
+        <div class="automation-row"><div><b>Savings pacing</b><span>Shows the monthly amount needed to reach your current savings goal by its target date.</span></div><span class="chip grey" id="moneySavingPace">Set a goal</span></div>
+      </div>
+      <div id="moneyAutomationResult" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card">
+      <h2>All transactions</h2>
+      <div class="tablewrap">
+        <table id="txTable">
+          <thead><tr><th>Date</th><th>Category</th><th class="num">Amount</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="empty" id="txEmpty" style="display:none">Nothing logged yet.</div>
+    </div>
+  </section>
+
+
+  <!-- HULL FC TAB -->
+  <section class="tab" id="tab-hull">
+    <div class="card fc-hero">
+      <div class="fc-title">Hull FC Hub</div>
+      <div class="fc-sub">2026 squad check, 2027 squad build, scores, fixtures, recruitment news and player profiles in one place.</div>
+      <div class="fc-grid">
+        <div class="fc-stat"><b id="fcSeasonLabel">2027</b><span>season</span></div>
+        <div class="fc-stat"><b id="fcLastUpdate">—</b><span>last refresh</span></div>
+        <div class="fc-stat"><b id="fcNewsCount">0</b><span>updates cached</span></div>
+      </div>
+      <div class="btn-row" style="margin-top:12px">
+        <button class="btn teal" id="fcRefreshBtn">Refresh Hull FC</button>
+        <button class="btn ghost" id="fcOfficialBtn">Official site</button>
+        <a class="btn ghost" href="https://www.rugbyleagueproject.org/seasons/super-league-2026/hull-fc/summary.html" target="_blank" rel="noopener" style="text-decoration:none">RLP stats</a>
+      </div>
+      <p class="hint" id="fcStatus" style="margin-bottom:0">Weekly refresh is automatic when the app is opened. Live background refresh while the page is closed needs a hosted notification/backend service.</p>
+    </div>
+
+    <div class="card">
+      <div class="fc-tabs">
+        <button class="active" data-fc-panel="news">News & rumours</button>
+        <button data-fc-panel="scores">Scores & fixtures</button>
+        <button data-fc-panel="players">Squads & players</button>
+        <button data-fc-panel="matchday">Matchday squads</button>
+      </div>
+      <div class="fc-panel active" id="fc-panel-news">
+        <div class="fc-list" id="fcNewsList"></div>
+      </div>
+      <div class="fc-panel" id="fc-panel-scores">
+        <div class="fc-list" id="fcScoresList"></div>
+      </div>
+      <div class="fc-panel" id="fc-panel-players">
+        <div class="fc-season-switch">
+          <button class="btn teal small" id="fcSeason2026">2026 squad</button>
+          <button class="btn ghost small" id="fcSeason2027">2027 squad</button>
+          <span class="hint" id="fcSquadNote" style="margin:0">2026 = official squad check · 2027 = confirmed signings + currently retained players</span>
+        </div>
+        <div class="row cols-2" style="margin-top:12px">
+          <div class="field"><label>Season</label><select id="fcPlayerSeason"><option value="2026">2026</option><option value="2027">2027</option></select></div>
+          <div class="field"><label>Search player</label><input id="fcPlayerSearch" placeholder="e.g. Cherry-Evans"></div>
+        </div>
+        <div id="fcPlayerList"></div>
+        <div id="fcPlayerProfile" style="display:none;margin-top:12px"></div>
+      </div>
+      <div class="fc-panel" id="fc-panel-matchday">
+        <div class="fc-item-top"><div><h2 style="margin-bottom:4px">Matchday squad checker</h2><div class="hint" style="margin:0">Choose the Hull FC fixture. When Rugby League Project has the lineup, the app shows both 17-man teams; official team-news links are provided for the latest confirmed squad.</div></div><span class="chip grey" id="fcMatchdayStatus">RLP lineup</span></div>
+        <div class="row cols-2" style="margin-top:12px"><div class="field"><label>Fixture</label><select id="fcMatchdayFixture"></select></div><div class="field" style="justify-content:flex-end"><button class="btn teal" id="fcMatchdayLoad">Load squad</button></div></div>
+        <div id="fcMatchdayMeta" style="margin-top:12px"></div>
+        <div class="fc-matchday-grid" id="fcMatchdayGrid" style="margin-top:12px"></div>
+      </div>
+    </div>
+
+    <div class="card fc-betting-card">
+      <div class="fc-item-top"><div><h2 style="margin-bottom:4px">Match-day betting board</h2><div class="hint" style="margin:0">Daily opponent-specific betting analysis using Hull FC results and player/team statistics from Rugby League Project. Live bookmaker prices are linked separately.</div></div><span class="chip amber" id="fcBetUpdated">Not checked today</span></div>
+      <div class="fc-grid" style="margin-top:12px"><div class="fc-stat"><b id="fcBetOpponent">Waiting</b><span>next opponent</span></div><div class="fc-stat"><b id="fcBetVenue">—</b><span>venue</span></div><div class="fc-stat"><b id="fcBetForm">—</b><span>Hull recent form</span></div></div>
+      <div id="fcBetIdeas" style="margin-top:12px"></div>
+      <div class="btn-row" style="margin-top:12px"><button class="btn teal" id="fcBetRefreshBtn">Refresh betting board</button><a class="btn ghost" href="https://www.oddschecker.com/rugby-league" target="_blank" rel="noopener" style="text-decoration:none">Open odds comparison</a></div>
+      <details style="margin-top:12px"><summary style="cursor:pointer;font-family:var(--font-display);font-weight:600">Live odds connection</summary><p class="hint" style="margin-top:10px">A standalone HTML file cannot reliably scrape bookmaker pages. You can optionally connect a CORS-enabled JSON odds feed; otherwise the buttons open live betting pages for current prices.</p><div class="row cols-2"><div class="field"><label>Optional odds JSON endpoint</label><input id="fcBetOddsUrl" placeholder="https://your-domain.example/odds.json"></div><div class="field"><label>Refresh interval</label><select id="fcBetRefreshMins"><option value="1440" selected>Daily</option><option value="60">Hourly</option><option value="30">Every 30 mins</option></select></div></div><div class="btn-row"><button class="btn ghost small" id="fcBetSaveSettings">Save betting settings</button><span class="hint" id="fcBetStatus" style="margin:0">Analysis uses fixture + recent-result data stored in the app.</span></div></details>
+      <p class="hint" style="margin-bottom:0;margin-top:12px"><b>Stats source:</b> Rugby League Project (RLP) is the reference source for the rugby statistics used by this board. <a href="https://www.rugbyleagueproject.org/" target="_blank" rel="noopener" style="color:var(--teal-ink)">Open RLP</a>. &nbsp; <b>Responsible gambling:</b> betting involves financial risk. These are informational match-up ideas, not guaranteed outcomes. Never chase losses or bet money you cannot afford to lose.</p>
+    </div>
+
+  </section>
+
+  <!-- FUEL TAB -->
+  <section class="tab" id="tab-fuel">
+    <div class="card fuel-hero">
+      <div class="hero-title">Fuel Finder</div>
+      <div class="hero-sub">Automatically checks live nearby prices instead of making you type them in. Set your postcode once and the app can refresh the results while it is open.</div>
+      <div class="settings-row" style="margin-top:13px">
+        <div class="field"><label>Postcode</label><input type="text" id="fuelPostcode" placeholder="e.g. HU1 1AA" autocomplete="postal-code"></div>
+        <div class="field" style="max-width:120px"><label>Fuel</label><select id="fuelType"><option value="E10" selected>Petrol E10</option><option value="E5">Super E5</option><option value="B7_STANDARD">Diesel</option></select></div><div class="field" style="max-width:120px"><label>Radius</label><select id="fuelRadius"><option value="2">2 mi</option><option value="5" selected>5 mi</option><option value="10">10 mi</option><option value="20">20 mi</option></select></div>
+        <button class="btn amber" id="fuelFindBtn" style="height:40px">Find</button>
+      </div>
+      <div class="mini-note" style="margin-top:8px"><span class="live-dot"></span><span id="fuelLiveStatus">Ready to search</span> · Fuel price data from <a href="https://fuelnearyou.com/" target="_blank" rel="noopener" style="color:var(--teal-ink)">Fuel Near You</a></div>
+      <div id="fuelFinderResult"></div>
+      <div class="row cols-2" style="margin-top:12px">
+        <div class="field"><label>Alert target (£/L)</label><input type="number" step="0.001" id="fuelAlertPrice" placeholder="e.g. 1.550"></div>
+        <div class="field" style="justify-content:flex-end"><button class="btn ghost" id="fuelAlertSave">Save target</button></div>
+      </div>
+      <p class="hint" id="fuelAlertStatus" style="margin-bottom:0">The app will flag the result when a live price reaches your target.</p>
+    </div>
+
+    <div class="card">
+      <h2>Log a fill-up</h2>
+      <div class="row cols-2">
+        <div class="field"><label>Date</label><input type="date" id="fuelDate"></div>
+        <div class="field"><label>Station</label><input type="text" id="fuelStation" placeholder="e.g. Tesco Beverley Rd"></div>
+      </div>
+      <div class="row cols-3">
+        <div class="field"><label>Litres</label><input type="number" step="0.01" id="fuelLitres"></div>
+        <div class="field"><label>£ / litre</label><input type="number" step="0.001" id="fuelPpl"></div>
+        <div class="field"><label>Odometer (mi)</label><input type="number" id="fuelOdo"></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn amber" id="addFuelBtn">Add fill-up</button>
+        <button class="btn ghost" id="fuelUseBestBtn" style="display:none">Use cheapest price</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Fuel dashboard</h2>
+      <div class="stat-row">
+        <div class="stat"><div class="num" id="fuelTotal">£0</div><div class="lbl">spent, all time</div></div>
+        <div class="stat"><div class="num" id="fuelAvgPpl">—</div><div class="lbl">avg £/litre</div></div>
+      </div>
+      <div class="stat-row" style="margin-top:10px">
+        <div class="stat"><div class="num" id="fuelMpl">—</div><div class="lbl">miles per litre</div></div>
+        <div class="stat"><div class="num" id="fuelBestSaved">—</div><div class="lbl">best live price found</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Fill-up history</h2>
+      <div class="tablewrap">
+        <table id="fuelTable">
+          <thead><tr><th>Date</th><th>Station</th><th class="num">Litres</th><th class="num">£/L</th><th class="num">Total</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="empty" id="fuelEmpty" style="display:none">No fill-ups logged yet.</div>
+    </div>
+
+    <div class="card">
+      <details>
+        <summary style="cursor:pointer;font-family:var(--font-display);font-weight:600">Manual local price list</summary>
+        <p class="hint" style="margin-top:10px">Keep this only for prices you personally spot. Live results above are the automatic finder.</p>
+        <div class="row cols-3">
+          <div class="field"><label>Station</label><input type="text" id="lpStation"></div>
+          <div class="field"><label>Fuel</label><select id="lpFuel"><option>Petrol</option><option>Diesel</option></select></div>
+          <div class="field"><label>£ / litre</label><input type="number" step="0.001" id="lpPrice"></div>
+        </div>
+        <button class="btn ghost" id="addLpBtn">Save price</button>
+        <div class="tablewrap" style="margin-top:12px">
+          <table id="lpTable"><thead><tr><th>Station</th><th>Fuel</th><th class="num">£/L</th><th></th></tr></thead><tbody></tbody></table>
+        </div>
+        <div class="empty" id="lpEmpty" style="display:none">No manual prices saved.</div>
+      </details>
+    </div>
+  </section>
+
+  <!-- EXTRAS TAB -->
+  <section class="tab" id="tab-extras">
+    <div class="card">
+      <h2>Bills &amp; subscriptions</h2>
+      <div class="row cols-2">
+        <div class="field"><label>Name</label><input type="text" id="billName" placeholder="e.g. Phone contract"></div>
+        <div class="field"><label>Amount £</label><input type="number" step="0.01" id="billAmount"></div>
+      </div>
+      <div class="row cols-2">
+        <div class="field"><label>Due day of month (1–31)</label><input type="number" id="billDueDay" min="1" max="31"></div>
+        <div class="field"><label>Frequency</label>
+          <select id="billFreq"><option value="monthly">Monthly</option><option value="annual">Annual</option><option value="weekly">Weekly</option></select>
+        </div>
+      </div>
+      <button class="btn ghost" id="addBillBtn">Add bill</button>
+      <div class="tablewrap" style="margin-top:12px">
+        <table id="billTable"><thead><tr><th>Bill</th><th class="num">Amount</th><th>Due</th><th></th></tr></thead><tbody></tbody></table>
+      </div>
+      <div class="empty" id="billEmpty" style="display:none">No bills added yet.</div>
+    </div>
+
+    <div class="card">
+      <h2>Payslip checker</h2>
+      <p class="hint">Compares a payslip against the shifts you logged for the same period.</p>
+      <div class="row cols-2">
+        <div class="field"><label>From</label><input type="date" id="psFrom"></div>
+        <div class="field"><label>To</label><input type="date" id="psTo"></div>
+      </div>
+      <div class="row cols-3">
+        <div class="field"><label>Payslip hours</label><input type="number" step="0.01" id="psHours"></div>
+        <div class="field"><label>Payslip gross £</label><input type="number" step="0.01" id="psGross"></div>
+        <div class="field"><label>Rate used £/hr</label><input type="number" step="0.01" id="psRate"></div>
+      </div>
+      <button class="btn ghost" id="psCheckBtn">Check</button>
+      <div id="psResult" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card">
+      <h2>Net worth</h2>
+      <div class="row cols-3">
+        <div class="field"><label>Date</label><input type="date" id="nwDate"></div>
+        <div class="field"><label>Assets £</label><input type="number" step="0.01" id="nwAssets"></div>
+        <div class="field"><label>Debts £</label><input type="number" step="0.01" id="nwDebts"></div>
+      </div>
+      <button class="btn ghost" id="addNwBtn">Add snapshot</button>
+      <div class="stat" style="margin-top:10px"><div class="num" id="nwLatest">£0</div><div class="lbl">latest net worth</div></div>
+      <div class="bar-list" id="nwBars" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card">
+      <h2>Notes vault</h2>
+      <p class="hint">Private notes, kept in this browser only — key numbers, references, reminders.</p>
+      <button class="btn ghost" id="addNoteBtn">Add note</button>
+      <div id="notesList" style="margin-top:10px"></div>
+    </div>
+  </section>
+
+  <!-- AI ASSISTANT TAB -->
+  <section class="tab" id="tab-assistant">
+    <div class="ai-box">
+      <div class="ai-head">
+        <div>
+          <div class="hero-title">Console AI</div>
+          <div class="hero-sub">Paste messy information here. The assistant works out which part of your Console it belongs in, prepares the record, and lets you add it with one tap.</div>
+        </div>
+        <span class="ai-badge">LOCAL • PRIVATE</span>
+      </div>
+      <textarea id="aiInput" rows="6" style="margin-top:13px" placeholder="Try:
+'Tomorrow 5pm to 9pm at Kingswood'
+'Spent £42.50 on petrol at Tesco'
+'28 September, 17:00–20:00 Winifred Holtby'
+'Phone bill £38 due on the 14th'
+'Save £1000 for a holiday'"></textarea>
+      <div class="btn-row">
+        <button class="btn teal" id="aiAnalyseBtn">Analyse</button>
+        <button class="btn ghost" id="aiClearBtn">Clear</button>
+      </div>
+      <div class="ai-example">It can currently create rota shifts, fuel logs, expenses/income, bills, savings goals and notes. Nothing is saved until you press <b>Add</b>.</div>
+      <div id="aiResult" class="ai-result"></div>
+    </div>
+
+    <div class="card">
+      <h2>What this is actually doing</h2>
+      <p class="hint" style="margin-bottom:0">This version runs entirely inside the page, so your pasted information stays in the browser. It uses a lightweight language parser rather than pretending it has a cloud AI model. If you later want a true ChatGPT-style model, the app would need an API/backend and an API key.</p>
+    </div>
+
+    <div class="card">
+      <h2>Quick commands</h2>
+      <div class="site-grid">
+        <div class="site-card"><b>Rota</b><span>“Friday 17:00-21:00 Kingswood”</span></div>
+        <div class="site-card"><b>Money</b><span>“Spent £25 on food”</span></div>
+        <div class="site-card"><b>Fuel</b><span>“£1.699/l 35 litres Tesco”</span></div>
+        <div class="site-card"><b>Bill</b><span>“Netflix £10.99 due 12th”</span></div>
+        <div class="site-card"><b>Savings</b><span>“Save £1500 for a car”</span></div>
+        <div class="site-card"><b>Note</b><span>“Remember: MOT in March”</span></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- loading + welcome screens ----------
+  (function bootScreens(){
+    var messages = ["Warming up the console…", "Loading your rota…", "Lining up the numbers…", "Nearly there…"];
+    var textEl = document.getElementById("loadingText");
+    var i = 0;
+    var cycle = setInterval(function(){
+      i = (i+1) % messages.length;
+      if (textEl) textEl.textContent = messages[i];
+    }, 420);
+    setTimeout(function(){
+      clearInterval(cycle);
+      var loading = document.getElementById("loadingScreen");
+      var welcome = document.getElementById("welcomeScreen");
+      if (loading) loading.classList.add("hide");
+      if (welcome) welcome.classList.remove("hide");
+    }, 1650);
+    var enterBtn = document.getElementById("enterBtn");
+    if (enterBtn) enterBtn.addEventListener("click", function(){
+      document.getElementById("welcomeScreen").classList.add("hide");
+    });
+  })();
+
+  // ---------- storage ----------
+  var STORE_KEY = "lifeConsoleData_v1";
+  function loadState(){
+    try {
+      var raw = localStorage.getItem(STORE_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch(e) { console.warn("load failed", e); }
+    return null;
+  }
+  function saveState(){
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+    catch(e) { console.warn("save failed", e); }
+  }
+
+  var seedShifts = [
+    {date:"2026-09-28", start:"17:00", end:"20:00", loc:"Winifred Holtby & Tweendykes"},
+    {date:"2026-09-29", start:"17:00", end:"21:00", loc:"Winifred Holtby & Tweendykes"},
+    {date:"2026-09-30", start:"17:00", end:"20:00", loc:"Winifred Holtby & Tweendykes"},
+    {date:"2026-10-04", start:"08:30", end:"16:30", loc:"Winifred Holtby & Tweendykes"},
+    {date:"2026-10-05", start:"17:00", end:"20:30", loc:"Winifred Holtby & Tweendykes"},
+    {date:"2026-10-06", start:"16:45", end:"20:45", loc:"Winifred Holtby & Tweendykes"},
+    {date:"2026-10-08", start:"18:45", end:"20:15", loc:"Kingswood Academy"},
+    {date:"2026-10-10", start:"09:30", end:"12:30", loc:"Kingswood Academy"},
+    {date:"2026-10-11", start:"12:30", end:"16:30", loc:"Winifred Holtby & Tweendykes"}
+  ];
+
+  var state = loadState() || { shifts: seedShifts.slice(), transactions: [], fuel: [], localPrices: [] };
+  if (!state.shifts) state.shifts = [];
+  if (!state.transactions) state.transactions = [];
+  if (!state.fuel) state.fuel = [];
+  if (!state.localPrices) state.localPrices = [];
+  if (!state.settings) state.settings = { alAllowance: null };
+  if (!state.budgets) state.budgets = {};
+  if (!state.savingsGoal) state.savingsGoal = { name:"", target:0, current:0 };
+  if (!state.bills) state.bills = [];
+  if (!state.netWorth) state.netWorth = [];
+  if (!state.notes) state.notes = [];
+  if (!state.moneySettings) state.moneySettings = { hourlyRate: null };
+  if (!state.hullFC) state.hullFC = { lastRefresh: null, news: [], scores: [], players: [] };
+  if (!state.hullFC.betting) state.hullFC.betting = { lastRefresh:null, oddsUrl:"", refreshMins:1440, odds:[] };
+
+  var CATEGORIES = ["Wages","Rent/Housing","Food","Transport","Fuel","Bills","Leisure","Savings","Other"];
+
+  // ---------- home-screen / PWA support ----------
+  (function setupInstall(){
+    var deferredPrompt = null;
+    window.addEventListener("beforeinstallprompt", function(e){
+      e.preventDefault();
+      deferredPrompt = e;
+      var btn = document.getElementById("installAppBtn");
+      if(btn) btn.hidden = false;
+    });
+    window.addEventListener("appinstalled", function(){
+      deferredPrompt = null;
+      var btn = document.getElementById("installAppBtn");
+      if(btn) btn.hidden = true;
+    });
+    var btn = document.getElementById("installAppBtn");
+    if(btn) btn.addEventListener("click", async function(){
+      if(!deferredPrompt) return;
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      btn.hidden = true;
+    });
+    if("serviceWorker" in navigator && location.protocol !== "file:"){
+      window.addEventListener("load", function(){
+        navigator.serviceWorker.register("sw.js").catch(function(err){ console.warn("service worker setup failed", err); });
+      });
+    }
+  })();
+
+  // ---------- tabs ----------
+  var navBtns = document.querySelectorAll("nav.panel button");
+  navBtns.forEach(function(b){
+    b.addEventListener("click", function(){
+      navBtns.forEach(function(x){ x.classList.remove("active"); });
+      b.classList.add("active");
+      document.querySelectorAll("section.tab").forEach(function(s){ s.classList.remove("active"); });
+      document.getElementById("tab-" + b.dataset.tab).classList.add("active");
+    });
+  });
+
+  // ---------- theme ----------
+  var themeBtn = document.getElementById("themeToggle");
+  function applyTheme(t){
+    if (t) document.documentElement.setAttribute("data-theme", t);
+    else document.documentElement.removeAttribute("data-theme");
+  }
+  var savedTheme = null;
+  try { savedTheme = localStorage.getItem("lifeConsoleTheme"); } catch(e){}
+  if (savedTheme) applyTheme(savedTheme);
+  themeBtn.addEventListener("click", function(){
+    var current = document.documentElement.getAttribute("data-theme");
+    var next = current === "dark" ? "light" : (current === "light" ? null : "dark");
+    applyTheme(next);
+    try { localStorage.setItem("lifeConsoleTheme", next || ""); } catch(e){}
+  });
+
+  // ---------- helpers ----------
+  function hoursBetween(start, end){
+    if (!start || !end) return 0;
+    var s = start.split(":").map(Number), e = end.split(":").map(Number);
+    var mins = (e[0]*60+e[1]) - (s[0]*60+s[1]);
+    if (mins < 0) mins += 24*60;
+    return mins / 60;
+  }
+  function fmtHrs(h){ return (Math.round(h*100)/100).toString(); }
+  function fmtMoney(n){ return "£" + (Math.round(n*100)/100).toFixed(2); }
+  function fmtDate(d){
+    if (!d) return "";
+    var dt = new Date(d + "T00:00:00");
+    if (isNaN(dt)) return d;
+    return dt.toLocaleDateString("en-GB", {weekday:"short", day:"2-digit", month:"short"});
+  }
+  function locChipClass(loc){
+    if (!loc) return "grey";
+    var l = loc.toLowerCase();
+    if (l.indexOf("winifred") > -1 || l.indexOf("tweendyke") > -1) return "blue";
+    if (l.indexOf("marvell") > -1) return "yellow";
+    if (l.indexOf("kingswood") > -1) return "green";
+    if (l.indexOf("leave") > -1 || l === "a/l") return "red";
+    return "grey";
+  }
+  function csvDownload(filename, rows){
+    var csv = rows.map(function(r){
+      return r.map(function(c){
+        var s = String(c==null?"":c);
+        if (s.indexOf(",") > -1 || s.indexOf('"') > -1) s = '"' + s.replace(/"/g,'""') + '"';
+        return s;
+      }).join(",");
+    }).join("\n");
+    var blob = new Blob([csv], {type:"text/csv"});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // ---------- ROTA render ----------
+  function renderShifts(){
+    var body = document.querySelector("#shiftTable tbody");
+    body.innerHTML = "";
+    var sorted = state.shifts.slice().sort(function(a,b){ return a.date.localeCompare(b.date); });
+    sorted.forEach(function(sh){
+      var hrs = hoursBetween(sh.start, sh.end);
+      var tr = document.createElement("tr");
+      tr.innerHTML =
+        "<td>" + fmtDate(sh.date) + "</td>" +
+        "<td><span class='chip " + locChipClass(sh.loc) + "'><span class='sw'></span>" + sh.loc + "</span></td>" +
+        "<td class='num'>" + (sh.start||"") + "</td>" +
+        "<td class='num'>" + (sh.end||"") + "</td>" +
+        "<td class='num'>" + fmtHrs(hrs) + "</td>" +
+        "<td></td>";
+      var delBtn = document.createElement("button");
+      delBtn.className = "del"; delBtn.textContent = "remove";
+      delBtn.addEventListener("click", function(){
+        var idx = state.shifts.indexOf(sh);
+        if (idx > -1) { state.shifts.splice(idx,1); saveState(); renderShifts(); }
+      });
+      tr.lastElementChild.appendChild(delBtn);
+      body.appendChild(tr);
+    });
+    document.getElementById("shiftEmpty").style.display = sorted.length ? "none" : "block";
+    renderAnnualLeave();
+    renderCalendar();
+  }
+
+  // ---------- annual leave ----------
+  function renderAnnualLeave(){
+    var allowInput = document.getElementById("alAllowance");
+    if (document.activeElement !== allowInput) {
+      allowInput.value = state.settings.alAllowance != null ? state.settings.alAllowance : "";
+    }
+    var year = new Date().getFullYear();
+    var used = state.shifts.filter(function(s){
+      return s.loc && s.loc.toLowerCase().indexOf("leave") > -1 && new Date(s.date+"T00:00:00").getFullYear() === year;
+    }).length;
+    document.getElementById("alUsed").textContent = used;
+    var allowance = state.settings.alAllowance;
+    document.getElementById("alLeft").textContent = (allowance != null && allowance !== "") ? (allowance - used) : "—";
+  }
+  document.getElementById("alSaveBtn").addEventListener("click", function(){
+    var v = document.getElementById("alAllowance").value;
+    state.settings.alAllowance = v === "" ? null : parseFloat(v);
+    saveState(); renderAnnualLeave();
+  });
+
+  // ---------- calendar ----------
+  var calCursor = new Date(); calCursor.setDate(1);
+  function renderCalendar(){
+    var y = calCursor.getFullYear(), m = calCursor.getMonth();
+    document.getElementById("calLabel").textContent = calCursor.toLocaleDateString("en-GB", {month:"long", year:"numeric"});
+    var firstDow = (new Date(y, m, 1).getDay() + 6) % 7; // Monday = 0
+    var daysInMonth = new Date(y, m+1, 0).getDate();
+    var byDate = {};
+    state.shifts.forEach(function(s){ (byDate[s.date] = byDate[s.date] || []).push(s); });
+    var html = "<div class='calgrid'>";
+    ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].forEach(function(d){ html += "<div class='dow'>"+d+"</div>"; });
+    for (var i=0; i<firstDow; i++) html += "<div class='cell blank'></div>";
+    for (var d=1; d<=daysInMonth; d++){
+      var dateStr = y+"-"+String(m+1).padStart(2,"0")+"-"+String(d).padStart(2,"0");
+      html += "<div class='cell' data-date='"+dateStr+"' style='cursor:pointer'><div class='dnum'>"+d+"</div>";
+      (byDate[dateStr]||[]).forEach(function(s){
+        var label = s.start && s.end ? (s.start+"-"+s.end) : "A/L";
+        html += "<div class='ev "+locChipClass(s.loc)+"'>"+label+"</div>";
+      });
+      html += "</div>";
+    }
+    document.getElementById("calGrid").innerHTML = html + "</div>";
+    document.querySelectorAll("#calGrid .cell[data-date]").forEach(function(cell){
+      cell.addEventListener("click", function(){ openDayEditor(cell.dataset.date); });
+    });
+  }
+  document.getElementById("calPrev").addEventListener("click", function(){ calCursor.setMonth(calCursor.getMonth()-1); renderCalendar(); });
+  document.getElementById("calNext").addEventListener("click", function(){ calCursor.setMonth(calCursor.getMonth()+1); renderCalendar(); });
+
+  // ---------- tap-a-day editor ----------
+  var editingDate = null;
+  function openDayEditor(dateStr){
+    editingDate = dateStr;
+    var existing = state.shifts.find(function(s){ return s.date === dateStr; });
+    var dt = new Date(dateStr+"T00:00:00");
+    document.getElementById("calEditorDate").textContent = dt.toLocaleDateString("en-GB", {weekday:"long", day:"numeric", month:"long"});
+    document.getElementById("calEditLoc").value = existing ? existing.loc : "Winifred Holtby & Tweendykes";
+    document.getElementById("calEditStart").value = existing ? (existing.start||"") : "";
+    document.getElementById("calEditEnd").value = existing ? (existing.end||"") : "";
+    document.getElementById("calEditDelete").style.display = existing ? "" : "none";
+    document.getElementById("calEditor").style.display = "block";
+    document.getElementById("calEditor").scrollIntoView({behavior:"smooth", block:"nearest"});
+  }
+  document.getElementById("calEditorClose").addEventListener("click", function(){
+    document.getElementById("calEditor").style.display = "none"; editingDate = null;
+  });
+  document.getElementById("calEditSave").addEventListener("click", function(){
+    if (!editingDate) return;
+    var loc = document.getElementById("calEditLoc").value;
+    var start = document.getElementById("calEditStart").value;
+    var end = document.getElementById("calEditEnd").value;
+    var isLeave = loc.toLowerCase().indexOf("leave") > -1;
+    if (!isLeave && (!start || !end)) { alert("Add a start and end time, or choose Annual Leave for a blank day."); return; }
+    var idx = state.shifts.findIndex(function(s){ return s.date === editingDate; });
+    var rec = {date: editingDate, start: start, end: end, loc: loc};
+    if (idx > -1) state.shifts[idx] = rec; else state.shifts.push(rec);
+    saveState(); renderShifts();
+    document.getElementById("calEditor").style.display = "none"; editingDate = null;
+  });
+  document.getElementById("calEditDelete").addEventListener("click", function(){
+    if (!editingDate) return;
+    var idx = state.shifts.findIndex(function(s){ return s.date === editingDate; });
+    if (idx > -1) { state.shifts.splice(idx,1); saveState(); renderShifts(); }
+    document.getElementById("calEditor").style.display = "none"; editingDate = null;
+  });
+
+  // ---------- average weekly hours ----------
+  document.getElementById("avgCalcBtn").addEventListener("click", function(){
+    var weeks = parseInt(document.getElementById("avgWeeks").value) || 4;
+    var today = new Date();
+    var cutoff = new Date(today); cutoff.setDate(cutoff.getDate() - weeks*7);
+    var cutoffStr = cutoff.toISOString().slice(0,10);
+    var todayStr = today.toISOString().slice(0,10);
+    var total = state.shifts.filter(function(s){ return s.date >= cutoffStr && s.date <= todayStr; })
+                             .reduce(function(sum,s){ return sum + hoursBetween(s.start, s.end); }, 0);
+    document.getElementById("avgResult").textContent = fmtHrs(total/weeks) + " hrs";
+  });
+
+  document.getElementById("addShiftBtn").addEventListener("click", function(){
+    var date = document.getElementById("shiftDate").value;
+    var start = document.getElementById("shiftStart").value;
+    var end = document.getElementById("shiftEnd").value;
+    var loc = document.getElementById("shiftLoc").value;
+    var isLeave = loc.toLowerCase().indexOf("leave") > -1;
+    if (!date || (!isLeave && (!start || !end))) { alert("Add a date, start and end time first."); return; }
+    state.shifts.push({date:date, start:start, end:end, loc:loc});
+    saveState(); renderShifts();
+    document.getElementById("shiftDate").value = "";
+    document.getElementById("shiftStart").value = "";
+    document.getElementById("shiftEnd").value = "";
+  });
+
+  function normaliseDate(v){
+    if (v instanceof Date) {
+      return v.toISOString().slice(0,10);
+    }
+    var s = String(v).trim();
+    var m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return m[1]+"-"+m[2]+"-"+m[3];
+    m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (m) return m[3]+"-"+m[2].padStart(2,"0")+"-"+m[1].padStart(2,"0");
+    return s;
+  }
+  function normaliseTime(v){
+    if (typeof v === "number") {
+      var totalMin = Math.round(v*24*60);
+      var h = Math.floor(totalMin/60), mnt = totalMin%60;
+      return String(h).padStart(2,"0")+":"+String(mnt).padStart(2,"0");
+    }
+    var s = String(v).trim();
+    var m = s.match(/^(\d{1,2}):(\d{2})/);
+    if (m) return m[1].padStart(2,"0")+":"+m[2];
+    return s;
+  }
+
+  document.getElementById("fileImport").addEventListener("change", function(e){
+    var file = e.target.files[0];
+    var statusEl = document.getElementById("importStatus");
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(evt){
+      try {
+        var wb = XLSX.read(evt.target.result, {type:"binary", cellDates:false});
+        var sheet = wb.Sheets[wb.SheetNames[0]];
+        var rows = XLSX.utils.sheet_to_json(sheet, {defval:""});
+        var added = 0;
+        rows.forEach(function(r){
+          var keys = Object.keys(r);
+          function find(name){
+            var k = keys.find(function(k){ return k.toLowerCase().indexOf(name) > -1; });
+            return k ? r[k] : "";
+          }
+          var date = find("date"), start = find("start"), end = find("end"), loc = find("locat");
+          if (!date) return;
+          state.shifts.push({
+            date: normaliseDate(date),
+            start: normaliseTime(start),
+            end: normaliseTime(end),
+            loc: loc || "Other"
+          });
+          added++;
+        });
+        saveState(); renderShifts();
+        statusEl.textContent = added ? ("Imported " + added + " shift(s).") : "No matching rows found — check the column headers.";
+      } catch(err){
+        statusEl.textContent = "Couldn't read that file: " + err.message;
+      }
+    };
+    reader.readAsBinaryString(file);
+  });
+
+  document.getElementById("buildTsBtn").addEventListener("click", function(){
+    var from = document.getElementById("tsFrom").value;
+    var to = document.getElementById("tsTo").value;
+    var rate = parseFloat(document.getElementById("tsRate").value) || 0;
+    var out = document.getElementById("tsResult");
+    if (!from || !to) { out.innerHTML = "<p class='hint'>Pick both a from and a to date.</p>"; return; }
+    var picked = state.shifts.filter(function(s){ return s.date >= from && s.date <= to; })
+                              .sort(function(a,b){ return a.date.localeCompare(b.date); });
+    if (!picked.length) { out.innerHTML = "<p class='hint'>No shifts recorded in that range.</p>"; return; }
+    var totalHrs = 0;
+    var rows = picked.map(function(s){
+      var h = hoursBetween(s.start, s.end);
+      totalHrs += h;
+      return "<tr><td>"+fmtDate(s.date)+"</td><td><span class='chip "+locChipClass(s.loc)+"'><span class='sw'></span>"+s.loc+"</span></td><td class='num'>"+s.start+"</td><td class='num'>"+s.end+"</td><td class='num'>"+fmtHrs(h)+"</td></tr>";
+    }).join("");
+    var pay = rate ? (totalHrs*rate) : null;
+    out.innerHTML =
+      "<div class='tablewrap' style='margin-top:10px'><table><thead><tr><th>Date</th><th>Location</th><th class='num'>Start</th><th class='num'>End</th><th class='num'>Hrs</th></tr></thead><tbody>"+rows+"</tbody></table></div>" +
+      "<div class='stat-row' style='margin-top:12px'>" +
+        "<div class='stat'><div class='num'>"+fmtHrs(totalHrs)+"</div><div class='lbl'>total hours</div></div>" +
+        "<div class='stat'><div class='num'>"+(pay!==null?fmtMoney(pay):"—")+"</div><div class='lbl'>est. pay</div></div>" +
+      "</div>" +
+      "<div class='btn-row no-print'><button class='btn ghost small' id='tsExport'>Export CSV</button><button class='btn ghost small' id='tsPrint'>Print</button></div>";
+    document.getElementById("tsExport").addEventListener("click", function(){
+      var csvRows = [["Date","Location","Start","End","Hours"]];
+      picked.forEach(function(s){ csvRows.push([s.date, s.loc, s.start, s.end, fmtHrs(hoursBetween(s.start,s.end))]); });
+      csvRows.push(["","","","Total", fmtHrs(totalHrs)]);
+      csvDownload("timesheet_"+from+"_to_"+to+".csv", csvRows);
+    });
+    document.getElementById("tsPrint").addEventListener("click", function(){ window.print(); });
+  });
+
+  // ---------- FINANCE ----------
+  function renderFinance(){
+    var body = document.querySelector("#txTable tbody");
+    body.innerHTML = "";
+    var sorted = state.transactions.slice().sort(function(a,b){ return b.date.localeCompare(a.date); });
+    sorted.forEach(function(tx){
+      var tr = document.createElement("tr");
+      var sign = tx.type === "income" ? "+" : "-";
+      var color = tx.type === "income" ? "var(--moss)" : "var(--clay)";
+      tr.innerHTML =
+        "<td>" + fmtDate(tx.date) + "</td>" +
+        "<td>" + tx.category + (tx.note ? " <span style='color:var(--ink-soft)'>· "+tx.note+"</span>" : "") + "</td>" +
+        "<td class='num' style='color:"+color+"'>" + sign + fmtMoney(Math.abs(tx.amount)).slice(1) + "</td>" +
+        "<td></td>";
+      var delBtn = document.createElement("button");
+      delBtn.className = "del"; delBtn.textContent = "remove";
+      delBtn.addEventListener("click", function(){
+        var idx = state.transactions.indexOf(tx);
+        if (idx > -1) { state.transactions.splice(idx,1); saveState(); renderFinance(); }
+      });
+      tr.lastElementChild.appendChild(delBtn);
+      body.appendChild(tr);
+    });
+    document.getElementById("txEmpty").style.display = sorted.length ? "none" : "block";
+
+    var now = new Date();
+    var ym = now.toISOString().slice(0,7);
+    var monthTx = state.transactions.filter(function(t){ return t.date.slice(0,7) === ym; });
+    var income = monthTx.filter(function(t){ return t.type==="income"; }).reduce(function(s,t){ return s+t.amount; }, 0);
+    var expense = monthTx.filter(function(t){ return t.type==="expense"; }).reduce(function(s,t){ return s+t.amount; }, 0);
+    document.getElementById("mIncome").textContent = fmtMoney(income);
+    document.getElementById("mExpense").textContent = fmtMoney(expense);
+    document.getElementById("mBalance").textContent = fmtMoney(income-expense);
+
+    var cats = {};
+    monthTx.filter(function(t){ return t.type==="expense"; }).forEach(function(t){
+      cats[t.category] = (cats[t.category]||0) + t.amount;
+    });
+    var catEntries = Object.keys(cats).map(function(k){ return [k, cats[k]]; }).sort(function(a,b){ return b[1]-a[1]; });
+    var maxVal = catEntries.length ? Math.max.apply(null, catEntries.map(function(e){ return e[1]; })) : 1;
+    var barsEl = document.getElementById("catBars");
+    barsEl.innerHTML = catEntries.map(function(e){
+      var cap = state.budgets[e[0]];
+      var pct, color, label;
+      if (cap) {
+        pct = Math.min(100, Math.round((e[1]/cap)*100));
+        color = pct >= 100 ? "var(--clay)" : (pct >= 80 ? "var(--amber)" : "var(--moss)");
+        label = fmtMoney(e[1]) + " / " + fmtMoney(cap);
+      } else {
+        pct = Math.round((e[1]/maxVal)*100);
+        color = "var(--moss)";
+        label = fmtMoney(e[1]);
+      }
+      return "<div class='bar-item'><div class='bhead'><span>"+e[0]+"</span><span>"+label+"</span></div><div class='bar-track'><div class='bar-fill' style='width:"+pct+"%;background:"+color+"'></div></div></div>";
+    }).join("");
+    document.getElementById("catEmpty").style.display = catEntries.length ? "none" : "block";
+  }
+
+  // ---------- budget caps ----------
+  function renderBudgetInputs(){
+    var el = document.getElementById("budgetInputs");
+    el.innerHTML = CATEGORIES.filter(function(c){ return c !== "Wages" && c !== "Savings"; }).map(function(c){
+      var val = state.budgets[c] != null ? state.budgets[c] : "";
+      return "<div class='row cols-2'><div class='field'><label>"+c+"</label></div><div class='field'><input type='number' step='0.01' class='budgetInput' data-cat='"+c+"' value='"+val+"' placeholder='no cap'></div></div>";
+    }).join("");
+  }
+  document.getElementById("saveBudgetsBtn").addEventListener("click", function(){
+    document.querySelectorAll(".budgetInput").forEach(function(inp){
+      var v = inp.value;
+      if (v === "") delete state.budgets[inp.dataset.cat];
+      else state.budgets[inp.dataset.cat] = parseFloat(v);
+    });
+    saveState(); renderFinance();
+  });
+
+  // ---------- savings goal ----------
+  function renderSavingsGoal(){
+    var g = state.savingsGoal;
+    document.getElementById("sgName").value = g.name || "";
+    document.getElementById("sgTarget").value = g.target || "";
+    document.getElementById("sgCurrent").value = g.current || "";
+    var el = document.getElementById("sgProgress");
+    if (!g.target) { el.innerHTML = ""; return; }
+    var pct = Math.min(100, Math.round((g.current/g.target)*100));
+    el.innerHTML = "<div class='bar-item' style='margin-top:8px'><div class='bhead'><span>"+(g.name||"Goal")+"</span><span>"+fmtMoney(g.current)+" / "+fmtMoney(g.target)+"</span></div><div class='bar-track'><div class='bar-fill' style='width:"+pct+"%;background:var(--teal)'></div></div></div>";
+  }
+  document.getElementById("sgSaveBtn").addEventListener("click", function(){
+    state.savingsGoal = {
+      name: document.getElementById("sgName").value,
+      target: parseFloat(document.getElementById("sgTarget").value) || 0,
+      current: parseFloat(document.getElementById("sgCurrent").value) || 0
+    };
+    saveState(); renderSavingsGoal();
+  });
+
+  document.getElementById("addTxBtn").addEventListener("click", function(){
+    var date = document.getElementById("txDate").value;
+    var type = document.getElementById("txType").value;
+    var amount = parseFloat(document.getElementById("txAmount").value);
+    var category = document.getElementById("txCategory").value;
+    var note = document.getElementById("txNote").value;
+    if (!date || !amount) { alert("Add a date and amount first."); return; }
+    state.transactions.push({date:date, type:type, amount:amount, category:category, note:note});
+    saveState(); renderFinance();
+    document.getElementById("txAmount").value = "";
+    document.getElementById("txNote").value = "";
+  });
+
+  // ---------- FUEL ----------
+  function renderFuel(){
+    var body = document.querySelector("#fuelTable tbody");
+    body.innerHTML = "";
+    var sorted = state.fuel.slice().sort(function(a,b){ return a.date.localeCompare(b.date); });
+    sorted.slice().reverse().forEach(function(f){
+      var total = f.litres * f.ppl;
+      var tr = document.createElement("tr");
+      tr.innerHTML =
+        "<td>" + fmtDate(f.date) + "</td>" +
+        "<td>" + (f.station||"—") + "</td>" +
+        "<td class='num'>" + f.litres + "</td>" +
+        "<td class='num'>" + f.ppl.toFixed(3) + "</td>" +
+        "<td class='num'>" + fmtMoney(total) + "</td>" +
+        "<td></td>";
+      var delBtn = document.createElement("button");
+      delBtn.className = "del"; delBtn.textContent = "remove";
+      delBtn.addEventListener("click", function(){
+        var idx = state.fuel.indexOf(f);
+        if (idx > -1) { state.fuel.splice(idx,1); saveState(); renderFuel(); }
+      });
+      tr.lastElementChild.appendChild(delBtn);
+      body.appendChild(tr);
+    });
+    document.getElementById("fuelEmpty").style.display = sorted.length ? "none" : "block";
+
+    var totalSpend = sorted.reduce(function(s,f){ return s + f.litres*f.ppl; }, 0);
+    var totalLitres = sorted.reduce(function(s,f){ return s + f.litres; }, 0);
+    document.getElementById("fuelTotal").textContent = fmtMoney(totalSpend);
+    document.getElementById("fuelAvgPpl").textContent = totalLitres ? ("£"+(totalSpend/totalLitres).toFixed(3)) : "—";
+
+    var withOdo = sorted.filter(function(f){ return f.odo != null && f.odo !== "" && !isNaN(f.odo); });
+    if (withOdo.length >= 2) {
+      var last = withOdo[withOdo.length-1], prev = withOdo[withOdo.length-2];
+      var dist = last.odo - prev.odo;
+      var mpl = dist > 0 ? (dist/last.litres) : null;
+      document.getElementById("fuelMpl").textContent = mpl ? (mpl.toFixed(2) + " mi/L") : "—";
+    } else {
+      document.getElementById("fuelMpl").textContent = "—";
+    }
+  }
+
+  document.getElementById("addFuelBtn").addEventListener("click", function(){
+    var date = document.getElementById("fuelDate").value;
+    var station = document.getElementById("fuelStation").value;
+    var litres = parseFloat(document.getElementById("fuelLitres").value);
+    var ppl = parseFloat(document.getElementById("fuelPpl").value);
+    var odoRaw = document.getElementById("fuelOdo").value;
+    var odo = odoRaw === "" ? null : parseFloat(odoRaw);
+    if (!date || !litres || !ppl) { alert("Add a date, litres and price per litre first."); return; }
+    state.fuel.push({date:date, station:station, litres:litres, ppl:ppl, odo:odo});
+    saveState(); renderFuel();
+    document.getElementById("fuelStation").value = "";
+    document.getElementById("fuelLitres").value = "";
+    document.getElementById("fuelPpl").value = "";
+    document.getElementById("fuelOdo").value = "";
+  });
+
+  function renderLocalPrices(){
+    var body = document.querySelector("#lpTable tbody");
+    body.innerHTML = "";
+    var sorted = state.localPrices.slice().sort(function(a,b){ return a.price-b.price; });
+    sorted.forEach(function(p, i){
+      var tr = document.createElement("tr");
+      tr.innerHTML =
+        "<td>" + p.station + (i===0 ? " <span class='chip green' style='margin-left:4px'><span class='sw'></span>cheapest</span>" : "") + "</td>" +
+        "<td>" + p.fuel + "</td>" +
+        "<td class='num'>" + p.price.toFixed(3) + "</td>" +
+        "<td></td>";
+      var delBtn = document.createElement("button");
+      delBtn.className = "del"; delBtn.textContent = "remove";
+      delBtn.addEventListener("click", function(){
+        var idx = state.localPrices.indexOf(p);
+        if (idx > -1) { state.localPrices.splice(idx,1); saveState(); renderLocalPrices(); }
+      });
+      tr.lastElementChild.appendChild(delBtn);
+      body.appendChild(tr);
+    });
+    document.getElementById("lpEmpty").style.display = sorted.length ? "none" : "block";
+  }
+
+  document.getElementById("addLpBtn").addEventListener("click", function(){
+    var station = document.getElementById("lpStation").value;
+    var fuel = document.getElementById("lpFuel").value;
+    var price = parseFloat(document.getElementById("lpPrice").value);
+    if (!station || !price) { alert("Add a station and price first."); return; }
+    state.localPrices.push({station:station, fuel:fuel, price:price});
+    saveState(); renderLocalPrices();
+    document.getElementById("lpStation").value = "";
+    document.getElementById("lpPrice").value = "";
+  });
+
+  // ---------- bills & subscriptions ----------
+  function nextDue(bill){
+    var today = new Date();
+    if (bill.freq === "monthly" || bill.freq === "weekly") {
+      var d = new Date(today.getFullYear(), today.getMonth(), Math.min(bill.dueDay, 28));
+      if (d < today) d.setMonth(d.getMonth()+1);
+      return d;
+    }
+    var d2 = new Date(today.getFullYear(), 0, Math.min(bill.dueDay,28));
+    if (d2 < today) d2.setFullYear(d2.getFullYear()+1);
+    return d2;
+  }
+  function renderBills(){
+    var body = document.querySelector("#billTable tbody");
+    body.innerHTML = "";
+    var withDue = state.bills.map(function(b){ return {b:b, due: nextDue(b)}; }).sort(function(a,b2){ return a.due-b2.due; });
+    withDue.forEach(function(item){
+      var b = item.b;
+      var daysAway = Math.round((item.due - new Date())/86400000);
+      var soon = daysAway <= 7;
+      var tr = document.createElement("tr");
+      tr.innerHTML =
+        "<td>" + b.name + " <span class='chip grey'>" + b.freq + "</span></td>" +
+        "<td class='num'>" + fmtMoney(b.amount) + "</td>" +
+        "<td>" + (soon ? "<span class='chip red'><span class='sw'></span>" : "<span class='chip grey'>") + item.due.toLocaleDateString("en-GB",{day:"2-digit",month:"short"}) + "</span></td>" +
+        "<td></td>";
+      var delBtn = document.createElement("button");
+      delBtn.className = "del"; delBtn.textContent = "remove";
+      delBtn.addEventListener("click", function(){
+        var idx = state.bills.indexOf(b);
+        if (idx > -1) { state.bills.splice(idx,1); saveState(); renderBills(); }
+      });
+      tr.lastElementChild.appendChild(delBtn);
+      body.appendChild(tr);
+    });
+    document.getElementById("billEmpty").style.display = withDue.length ? "none" : "block";
+  }
+  document.getElementById("addBillBtn").addEventListener("click", function(){
+    var name = document.getElementById("billName").value;
+    var amount = parseFloat(document.getElementById("billAmount").value);
+    var dueDay = parseInt(document.getElementById("billDueDay").value);
+    var freq = document.getElementById("billFreq").value;
+    if (!name || !amount || !dueDay) { alert("Add a name, amount and due day first."); return; }
+    state.bills.push({name:name, amount:amount, dueDay:dueDay, freq:freq});
+    saveState(); renderBills();
+    document.getElementById("billName").value = "";
+    document.getElementById("billAmount").value = "";
+    document.getElementById("billDueDay").value = "";
+  });
+
+  // ---------- payslip checker ----------
+  document.getElementById("psCheckBtn").addEventListener("click", function(){
+    var from = document.getElementById("psFrom").value;
+    var to = document.getElementById("psTo").value;
+    var psHours = parseFloat(document.getElementById("psHours").value);
+    var psGross = parseFloat(document.getElementById("psGross").value);
+    var rate = parseFloat(document.getElementById("psRate").value);
+    var out = document.getElementById("psResult");
+    if (!from || !to) { out.innerHTML = "<p class='hint'>Pick both dates first.</p>"; return; }
+    var loggedHours = state.shifts.filter(function(s){ return s.date >= from && s.date <= to; })
+                                   .reduce(function(sum,s){ return sum + hoursBetween(s.start,s.end); }, 0);
+    var rows = "<div class='stat-row' style='margin-top:6px'>" +
+      "<div class='stat'><div class='num'>"+fmtHrs(loggedHours)+"</div><div class='lbl'>hours logged here</div></div>" +
+      "<div class='stat'><div class='num'>"+(isNaN(psHours)?"—":psHours)+"</div><div class='lbl'>hours on payslip</div></div>" +
+      "</div>";
+    if (!isNaN(psHours)) {
+      var diff = Math.round((loggedHours-psHours)*100)/100;
+      rows += "<p class='hint' style='margin-top:8px'>" + (Math.abs(diff) < 0.05 ? "Hours match." : (diff>0 ? "You logged "+diff+" more hour(s) here than the payslip shows." : "The payslip shows "+Math.abs(diff)+" more hour(s) than you logged here.")) + "</p>";
+    }
+    if (!isNaN(psGross) && !isNaN(rate)) {
+      var expected = loggedHours * rate;
+      var payDiff = Math.round((psGross-expected)*100)/100;
+      rows += "<p class='hint' style='margin-bottom:0'>Expected pay at that rate: "+fmtMoney(expected)+". Payslip gross: "+fmtMoney(psGross)+" ("+(Math.abs(payDiff)<0.05?"matches":(payDiff>0?fmtMoney(payDiff)+" more than expected":fmtMoney(Math.abs(payDiff))+" less than expected"))+").</p>";
+    }
+    out.innerHTML = rows;
+  });
+
+  // ---------- net worth ----------
+  function renderNetWorth(){
+    var sorted = state.netWorth.slice().sort(function(a,b){ return a.date.localeCompare(b.date); });
+    var latest = sorted.length ? sorted[sorted.length-1] : null;
+    document.getElementById("nwLatest").textContent = latest ? fmtMoney(latest.assets-latest.debts) : "£0";
+    var maxAbs = sorted.reduce(function(m,s){ return Math.max(m, Math.abs(s.assets-s.debts)); }, 1);
+    var barsEl = document.getElementById("nwBars");
+    barsEl.innerHTML = sorted.slice().reverse().map(function(s){
+      var net = s.assets-s.debts;
+      var pct = Math.round((Math.abs(net)/maxAbs)*100);
+      return "<div class='bar-item'><div class='bhead'><span>"+fmtDate(s.date)+"</span><span>"+fmtMoney(net)+"</span></div><div class='bar-track'><div class='bar-fill' style='width:"+pct+"%;background:"+(net>=0?"var(--teal)":"var(--clay)")+"'></div></div></div>";
+    }).join("");
+  }
+  document.getElementById("addNwBtn").addEventListener("click", function(){
+    var date = document.getElementById("nwDate").value;
+    var assets = parseFloat(document.getElementById("nwAssets").value) || 0;
+    var debts = parseFloat(document.getElementById("nwDebts").value) || 0;
+    if (!date) { alert("Add a date first."); return; }
+    state.netWorth.push({date:date, assets:assets, debts:debts});
+    saveState(); renderNetWorth();
+    document.getElementById("nwAssets").value = "";
+    document.getElementById("nwDebts").value = "";
+  });
+
+  // ---------- notes vault ----------
+  function renderNotes(){
+    var el = document.getElementById("notesList");
+    el.innerHTML = "";
+    state.notes.forEach(function(n){
+      var div = document.createElement("div");
+      div.className = "card";
+      div.style.background = "var(--surface-2)";
+      div.style.marginBottom = "10px";
+      div.innerHTML =
+        "<input type='text' class='noteTitle' placeholder='Title' value='"+(n.title||"").replace(/"/g,"&quot;")+"' style='font-family:var(--font-display);font-weight:600;margin-bottom:8px;border:none;background:transparent;padding:0'>" +
+        "<textarea class='noteBody' rows='3' placeholder='Note...' style='border:none;background:transparent;padding:0;resize:vertical'>"+(n.body||"")+"</textarea>" +
+        "<div class='btn-row' style='margin-top:6px'><button class='del noteDel'>delete note</button></div>";
+      var titleInp = div.querySelector(".noteTitle");
+      var bodyInp = div.querySelector(".noteBody");
+      titleInp.addEventListener("input", function(){ n.title = titleInp.value; saveState(); });
+      bodyInp.addEventListener("input", function(){ n.body = bodyInp.value; saveState(); });
+      div.querySelector(".noteDel").addEventListener("click", function(){
+        var idx = state.notes.indexOf(n);
+        if (idx > -1) { state.notes.splice(idx,1); saveState(); renderNotes(); }
+      });
+      el.appendChild(div);
+    });
+  }
+  document.getElementById("addNoteBtn").addEventListener("click", function(){
+    state.notes.push({title:"", body:""});
+    saveState(); renderNotes();
+  });
+
+
+  // ---------- Console v2: rota dashboard ----------
+  function dateOnly(d){ return new Date(d+"T00:00:00"); }
+  function isoLocalDate(d){
+    var x = new Date(d);
+    return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0");
+  }
+  function weekStart(d){
+    var x = new Date(d); var day=(x.getDay()+6)%7; x.setDate(x.getDate()-day); x.setHours(0,0,0,0); return x;
+  }
+  function renderRotaDashboard(){
+    var today = new Date(); today.setHours(0,0,0,0);
+    var upcoming = state.shifts.filter(function(s){return dateOnly(s.date)>=today && !(s.loc||"").toLowerCase().includes("leave");})
+      .sort(function(a,b){return a.date.localeCompare(b.date)||String(a.start).localeCompare(String(b.start));});
+    var next = upcoming[0];
+    document.getElementById("rotaNext").textContent = next ? fmtDate(next.date) : "—";
+    var ws=weekStart(today), we=new Date(ws); we.setDate(we.getDate()+6);
+    var wsf=isoLocalDate(ws), wef=isoLocalDate(we);
+    var week=state.shifts.filter(function(s){return s.date>=wsf&&s.date<=wef;});
+    var wh=week.reduce(function(a,s){return a+hoursBetween(s.start,s.end);},0);
+    document.getElementById("rotaWeekHrs").textContent=fmtHrs(wh)+"h";
+    document.getElementById("rotaWeekShifts").textContent=week.length;
+    var tl=document.getElementById("rotaTimeline");
+    tl.innerHTML=upcoming.slice(0,7).map(function(s){
+      var d=dateOnly(s.date);
+      var day=d.toLocaleDateString("en-GB",{weekday:"short"});
+      var date=d.toLocaleDateString("en-GB",{day:"2-digit",month:"short"});
+      return "<div class='shift-card'><div class='shift-day'>"+day+"<small>"+date+"</small></div>"+
+        "<div class='shift-main'><div class='shift-time'>"+(s.start||"A/L")+" — "+(s.end||"")+" </div>"+
+        "<div class='shift-place'>"+s.loc+"</div></div><div class='shift-hours'>"+fmtHrs(hoursBetween(s.start,s.end))+"h</div></div>";
+    }).join("");
+    document.getElementById("rotaTimelineEmpty").style.display=upcoming.length?"none":"block";
+
+    var sites={};
+    state.shifts.forEach(function(s){if(!s.loc||s.loc.toLowerCase().includes("leave"))return;sites[s.loc]=(sites[s.loc]||0)+hoursBetween(s.start,s.end);});
+    var siteEl=document.getElementById("rotaSites");
+    var entries=Object.keys(sites).sort(function(a,b){return sites[b]-sites[a];});
+    siteEl.innerHTML=entries.length?entries.slice(0,6).map(function(k){
+      return "<div class='site-card'><b>"+k+"</b><span>"+fmtHrs(sites[k])+" hours logged</span></div>";
+    }).join(""):"<div class='empty'>Your sites will appear here as shifts are added.</div>";
+  }
+  var oldRenderShifts=renderShifts;
+  renderShifts=function(){ oldRenderShifts(); renderRotaDashboard(); };
+
+  document.getElementById("jumpTodayBtn").addEventListener("click",function(){
+    calCursor=new Date();calCursor.setDate(1);renderCalendar();
+  });
+
+  // ---------- Live fuel finder ----------
+  function renderLiveFuel(stations, meta){
+    var el=document.getElementById("fuelFinderResult");
+    var sorted=(stations||[]).slice().sort(function(a,b){return (a.price||9999)-(b.price||9999);});
+    document.getElementById("fuelBestSaved").textContent=sorted.length?("£"+(sorted[0].price/100).toFixed(3)):"—";
+    if(!sorted.length){el.innerHTML="<div class='empty'>No stations returned for that search.</div>";return;}
+    var best=sorted[0]; var targetPrice=parseFloat(localStorage.getItem("lifeConsoleFuelAlert")||""); var hit=isFinite(targetPrice)&&(best.price/100)<=targetPrice;
+    el.innerHTML="<div class='fuel-best'><div><div class='station'>"+best.name+"</div><div class='meta'>"+(best.distance_miles!=null?best.distance_miles+" miles away":"Nearby")+" · "+(best.brand||"")+"</div></div><div class='price'>"+best.price.toFixed(1)+"p</div></div>"+
+      "<div class='fuel-list'>"+sorted.slice(1,5).map(function(x){
+        return "<div class='fuel-row'><div><div class='name'>"+x.name+"</div><div class='distance'>"+(x.distance_miles!=null?x.distance_miles+" miles":"")+"</div></div><div class='price'>"+x.price.toFixed(1)+"p</div></div>";
+      }).join("")+"</div>";
+    document.getElementById("fuelUseBestBtn").style.display="";
+    document.getElementById("fuelUseBestBtn").dataset.price=(best.price/100).toFixed(3);
+    document.getElementById("fuelUseBestBtn").dataset.station=best.name;
+    document.getElementById("fuelLiveStatus").textContent=(hit?"TARGET HIT · ":"")+"Live result · "+new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}); document.getElementById("fuelAlertStatus").textContent=hit?"🎯 Target reached — cheapest nearby price is at or below your target.":(isFinite(targetPrice)?"Watching for £"+targetPrice.toFixed(3)+"/L or less.":"Set a target above if you want the app to flag cheaper fuel.");
+  }
+  async function findFuelPrices(silent){
+    var pc=(document.getElementById("fuelPostcode").value||"").trim();
+    var radius=document.getElementById("fuelRadius").value; var fuelType=document.getElementById("fuelType").value;
+    if(!pc){if(!silent)alert("Enter your postcode first.");return;}
+    try{
+      document.getElementById("fuelLiveStatus").textContent="Checking live prices…";
+      var url="https://fuelnearyou.com/api/v1/dashboard/widget/nearby?postcode="+encodeURIComponent(pc)+"&fuel_type="+encodeURIComponent(fuelType)+"&radius="+radius+"&limit=5";
+      var res=await fetch(url,{cache:"no-store"});
+      if(!res.ok)throw new Error("HTTP "+res.status);
+      var data=await res.json();
+      renderLiveFuel(data.stations||[],data);
+      try{localStorage.setItem("lifeConsoleFuelFinder",JSON.stringify({postcode:pc,radius:radius,fuelType:fuelType}));}catch(e){}
+    }catch(e){
+      document.getElementById("fuelLiveStatus").textContent="Couldn't reach live fuel data";
+      if(!silent)alert("The live fuel service could not be reached. Check your connection and try again.");
+    }
+  }
+  document.getElementById("fuelFindBtn").addEventListener("click",function(){findFuelPrices(false);});
+  document.getElementById("fuelUseBestBtn").addEventListener("click",function(){
+    document.getElementById("fuelPpl").value=this.dataset.price||"";
+    document.getElementById("fuelStation").value=this.dataset.station||"";
+    document.getElementById("fuelDate").value=isoLocalDate(new Date());
+  });
+  try{
+    var ff=JSON.parse(localStorage.getItem("lifeConsoleFuelFinder")||"null");
+    if(ff){document.getElementById("fuelPostcode").value=ff.postcode||"";document.getElementById("fuelRadius").value=ff.radius||"5";document.getElementById("fuelType").value=ff.fuelType||"E10";}
+  }catch(e){}
+  if(document.getElementById("fuelPostcode").value)setTimeout(function(){findFuelPrices(true);},700);
+  setInterval(function(){if(document.getElementById("fuelPostcode").value&&document.getElementById("tab-fuel").classList.contains("active"))findFuelPrices(true);},30*60*1000);
+
+
+  // ---------- Fuel target alert ----------
+  (function(){
+    var saved=localStorage.getItem("lifeConsoleFuelAlert");
+    if(saved) document.getElementById("fuelAlertPrice").value=saved;
+    document.getElementById("fuelAlertSave").addEventListener("click",function(){
+      var v=parseFloat(document.getElementById("fuelAlertPrice").value);
+      if(!isFinite(v)||v<=0){alert("Enter a valid target price.");return;}
+      localStorage.setItem("lifeConsoleFuelAlert",v.toFixed(3));
+      document.getElementById("fuelAlertStatus").textContent="Target saved: flag prices at or below £"+v.toFixed(3)+"/L.";
+    });
+  })();
+
+  // ---------- Mini AI / smart parser ----------
+  function parseDatePhrase(text){
+    var t=text.toLowerCase(), now=new Date();
+    if(/\btomorrow\b/.test(t)){now.setDate(now.getDate()+1);return isoLocalDate(now);}
+    if(/\btoday\b/.test(t))return isoLocalDate(now);
+    var m=t.match(/\b(\d{1,2})(?:st|nd|rd|th)?[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?\b/);
+    if(m){var y=m[3]?Number(m[3]):now.getFullYear();if(y<100)y+=2000;return y+"-"+String(m[2]).padStart(2,"0")+"-"+String(m[1]).padStart(2,"0");}
+    var months={january:0,february:1,march:2,april:3,may:4,june:5,july:6,august:7,september:8,october:9,november:10,december:11};
+    for(var name in months){var r=t.match(new RegExp("\\b(\\d{1,2})(?:st|nd|rd|th)?\\s+"+name+"\\b"));if(r){var d=new Date(now.getFullYear(),months[name],Number(r[1]));return isoLocalDate(d);}}
+    return isoLocalDate(now);
+  }
+  function parseTimeRange(text){
+    var m=text.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s*(?:-|–|to)\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+    if(!m)return null;
+    function f(h,min,ap){
+      h=Number(h);min=Number(min||0);ap=(ap||"").toLowerCase();
+      if(ap==="pm"&&h<12)h+=12;if(ap==="am"&&h===12)h=0;
+      return String(h).padStart(2,"0")+":"+String(min).padStart(2,"0");
+    }
+    var ap1=m[3],ap2=m[6]||ap1;
+    return {start:f(m[1],m[2],ap1),end:f(m[4],m[5],ap2)};
+  }
+  function moneyFrom(text){
+    var m=text.match(/£\s*(\d+(?:\.\d{1,2})?)/i);return m?parseFloat(m[1]):null;
+  }
+  function detectAI(text){
+    var t=text.trim(), low=t.toLowerCase(), actions=[];
+    var date=parseDatePhrase(t), times=parseTimeRange(t);
+    var locs=["Winifred Holtby & Tweendykes","The Marvell College","Kingswood Academy"];
+    var loc=locs.find(function(x){return low.includes(x.toLowerCase().split(" ")[0].toLowerCase())||low.includes(x.toLowerCase());})||null;
+    if(!loc&&/winifred|holtby|tweendyke/i.test(t))loc="Winifred Holtby & Tweendykes";
+    if(!loc&&/marvell/i.test(t))loc="The Marvell College";
+    if(!loc&&/kingswood/i.test(t))loc="Kingswood Academy";
+    if(times&&(/shift|rota|work|kingswood|marvell|holtby|tweendyke|^\s*(today|tomorrow|mon|tue|wed|thu|fri|sat|sun)/i.test(t))){
+      actions.push({type:"shift",title:"Rota shift",detail:fmtDate(date)+" · "+times.start+"–"+times.end+" · "+(loc||"Other"),data:{date:date,start:times.start,end:times.end,loc:loc||"Other"}});
+    }
+    var priceMatch=t.match(/£\s*(\d\.\d{3})\s*(?:\/|per)?\s*(?:l|litre)/i);
+    var litresMatch=t.match(/(\d+(?:\.\d+)?)\s*(?:l|litres|liters)\b/i);
+    if((/petrol|fuel|pump|litre|litres/i.test(t))&&(priceMatch||litresMatch)){
+      var ppl=priceMatch?parseFloat(priceMatch[1]):null, litres=litresMatch?parseFloat(litresMatch[1]):null;
+      var station=(t.match(/(?:at|@)\s+([A-Za-z0-9 '&-]+?)(?:\s+for|\s*$)/i)||[])[1]||"";
+      actions.push({type:"fuel",title:"Fuel fill-up",detail:(station||"Fuel")+" · "+(litres?litres+" L":"")+(ppl?" · £"+ppl.toFixed(3)+"/L":""),data:{date:date,station:station.trim(),litres:litres||0,ppl:ppl||0,odo:null}});
+    }
+    var amount=moneyFrom(t);
+    if(amount!==null&&(/spent|bought|paid|expense|cost|income|wage|salary|received/i.test(t))&&!/\/l|per litre|litre/i.test(t)){
+      var income=/income|wage|salary|received|paid me/i.test(t), cats=[["food","Food"],["petrol","Fuel"],["fuel","Fuel"],["rent","Rent/Housing"],["bill","Bills"],["transport","Transport"],["leisure","Leisure"],["saving","Savings"]];
+      var cat=(cats.find(function(x){return low.includes(x[0]);})||["","Other"])[1];
+      actions.push({type:"transaction",title:income?"Income":"Expense",detail:(income?"+":"-")+"£"+amount.toFixed(2)+" · "+cat,data:{date:date,type:income?"income":"expense",amount:amount,category:cat,note:t}});
+    }
+    if(/bill|subscription|phone contract|insurance/i.test(t)&&amount!==null){
+      var due=(t.match(/due\s+(?:on\s+the\s+)?(\d{1,2})(?:st|nd|rd|th)?/i)||[])[1];
+      actions.push({type:"bill",title:"Bill",detail:"£"+amount.toFixed(2)+(due?" · due "+due+"th":""),data:{name:(t.match(/(?:bill|subscription)\s+(.+?)(?:\s+£|$)/i)||[])[1]||"Bill",amount:amount,dueDay:parseInt(due)||1,freq:"monthly"}});
+    }
+    var target=t.match(/save\s+(?:up to\s+)?£\s*(\d+(?:\.\d{1,2})?)/i);
+    if(target){
+      var nm=(t.match(/for\s+(.+?)(?:\s*$)/i)||[])[1]||"Savings goal";
+      actions.push({type:"saving",title:"Savings goal",detail:nm+" · £"+parseFloat(target[1]).toFixed(2),data:{name:nm,target:parseFloat(target[1]),current:0}});
+    }
+    if(/remember|note|remind me|note this/i.test(t)&&!actions.length){
+      actions.push({type:"note",title:"Note",detail:t,data:{title:"Console note",body:t}});
+    }
+    return actions;
+  }
+  function renderAI(){
+    var text=document.getElementById("aiInput").value, out=document.getElementById("aiResult");
+    var actions=detectAI(text);
+    if(!text.trim()){out.innerHTML="";return;}
+    if(!actions.length){out.innerHTML="<div class='ai-action'><div><b>I couldn't confidently classify that</b><span>Try mentioning a shift, spending, fuel, bill, savings goal or note.</span></div></div>";return;}
+    out.innerHTML=actions.map(function(a,i){
+      return "<div class='ai-action'><div><b>"+a.title+"</b><span>"+a.detail+"</span></div><button class='btn small teal aiAdd' data-i='"+i+"'>Add</button></div>";
+    }).join("");
+    out.querySelectorAll(".aiAdd").forEach(function(btn){
+      btn.addEventListener("click",function(){
+        var a=actions[Number(btn.dataset.i)];
+        if(a.type==="shift")state.shifts.push(a.data);
+        if(a.type==="fuel")state.fuel.push(a.data);
+        if(a.type==="transaction")state.transactions.push(a.data);
+        if(a.type==="bill")state.bills.push(a.data);
+        if(a.type==="saving")state.savingsGoal=a.data;
+        if(a.type==="note")state.notes.push(a.data);
+        saveState();renderShifts();renderFinance();renderFuel();renderBills();renderSavingsGoal();renderNotes();
+        btn.textContent="Added ✓";btn.disabled=true;
+      });
+    });
+  }
+  document.getElementById("aiAnalyseBtn").addEventListener("click",renderAI);
+  document.getElementById("aiClearBtn").addEventListener("click",function(){document.getElementById("aiInput").value="";document.getElementById("aiResult").innerHTML="";});
+  document.getElementById("aiInput").addEventListener("keydown",function(e){if((e.ctrlKey||e.metaKey)&&e.key==="Enter")renderAI();});
+
+
+  // ---------- Hull FC 2027 hub ----------
+  var FC_OFFICIAL_NEWS = "https://www.hullfc.com/news/";
+  var FC_OFFICIAL_FIXTURES = "https://www.hullfc.com/team/first-team/fixtures-custom";
+  var fcSeedNews = [
+    {title:"Connor Barley signs for 2027",type:"Signing",date:"2026-09-17",text:"Hull FC announced Connor Barley as an 2027 addition from Goole Vikings.",url:"https://www.hullfc.com/blog/2026/09/17/barley-signs-for-2027/"},
+    {title:"Junior Pauga signs for 2027",type:"Signing",date:"2026-09-02",text:"Hull FC confirmed Junior Pauga on a two-year deal for the 2027 Super League season.",url:"https://www.hullfc.com/blog/2026/09/02/junior-pauga-signs-for-2027/"},
+    {title:"Joshua Coric signs for 2027",type:"Signing",date:"2026-09-01",text:"Hull FC confirmed Australian forward Joshua Coric on a two-year deal.",url:"https://www.hullfc.com/blog/2026/09/01/joshua-coric-signs-for-2027/"},
+    {title:"Jordan Swann signs for 2027",type:"Signing",date:"2026-08-26",text:"Hull FC announced centre Jordan Swann on a two-year deal.",url:"https://www.hullfc.com/blog/2026/08/26/jordan-swann-signs-for-2027/"},
+    {title:"Isaac Liu signs for 2027",type:"Signing",date:"2026-08-17",text:"Hull FC announced New Zealand international forward Isaac Liu on a one-year deal.",url:"https://www.hullfc.com/blog/2026/08/17/liu-signs-for-2027/"},
+    {title:"Daly Cherry-Evans signs for 2027",type:"Signing",date:"2026-08-13",text:"Hull FC announced Daly Cherry-Evans for the 2027 Super League season.",url:"https://www.hullfc.com/blog/2026/08/13/hull-fc-complete-landmark-signing-of-daly-cherry-evans-for-2027/"},
+    {title:"Bailey Hodgson signs for 2027",type:"Signing",date:"2026-08-04",text:"Hull FC announced the return of hometown full-back Bailey Hodgson on a two-year deal.",url:"https://www.hullfc.com/blog/2026/08/04/hodgson-comes-home-for-2027/"},
+    {title:"Steve McNamara appointed head coach from 2027",type:"Club",date:"2026-04-17",text:"Hull FC confirmed Steve McNamara will become head coach for the 2027 season.",url:"https://www.hullfc.com/blog/2026/04/17/hull-fc-appoint-steve-mcnamara-as-head-coach-from-2027/"}
+  ];
+  var fc2026Players = [
+    [1,"Will Pryce","Fullback"],[2,"Harvey Barron","Wing"],[3,"Davy Litten","Fullback"],[4,"Zak Hardaker","Centre"],[5,"Lewis Martin","Wing"],[6,"Jake Arthur","Halfback"],[7,"Aidan Sezer","Halfback"],[8,"Herman Ese’ese","Prop"],[9,"Amir Bourouh","Hooker"],[10,"Harvie Hill","Prop"],[11,"Joe Batchelor","Back row"],[12,"Jed Cartwright","Back row"],[13,"John Asiata","Lock"],[14,"Cade Cust","Hooker"],[15,"James Bell","Back row"],[16,"Sam Lisone","Prop"],[17,"Liam Knight","Prop"],[18,"Ligi Sao","Prop"],[19,"Tom Briscoe","Wing"],[20,"Yusuf Aydin","Prop"],[21,"Arthur Romano","Centre"],[22,"Connor Bailey","Back row"],[23,"Brad Fash","Prop"],[24,"Logan Moy","Fullback"],[25,"Matty Laidlaw","Prop"],[26,"Hugo Salabio","Prop"],[27,"Callum Kemp","Halfback"],[28,"Joe Phillips","Prop"],[29,"Will Hutchinson","Hooker"],[30,"Will Kirby","Lock"],[31,"Ryan Westerman","Centre"],[32,"Lloyd Kemp","Fullback"],[33,"Roman Dawson","Centre"],[34,"Joe Ward","Wing"],[35,"Ben Johnson","Centre"],[36,"Lennon Clark","Second row"]
+  ];
+  var fc2027Signings = [
+    ["Bailey Hodgson","Fullback","Confirmed signing"],["Daly Cherry-Evans","Halfback","Confirmed signing"],["Alrix Da Costa","Hooker","Confirmed signing"],["Isaac Liu","Forward","Confirmed signing"],["Jordan Swann","Centre","Confirmed signing"],["Joshua Coric","Prop / loose-forward","Confirmed signing"],["Junior Pauga","Centre","Confirmed signing"],["Connor Barley","Outside-back","Confirmed signing"]
+  ];
+  var fcDeparting2026 = ["Davy Litten","Amir Bourouh","Tom Briscoe","Brad Fash","Ligi Sao","Jake Arthur","Hugo Salabio","Ben Johnson","Roman Dawson","Jed Cartwright"];
+  var fcRLPStats = {
+    "Will Pryce":{apps:2,tries:0,goals:6,points:13},"Harvey Barron":{apps:20,tries:12,goals:0,points:48},"Davy Litten":{apps:24,tries:13,goals:0,points:52},"Zak Hardaker":{apps:22,tries:2,goals:56,points:120},"Lewis Martin":{apps:21,tries:11,goals:0,points:44},"Jake Arthur":{apps:25,tries:6,goals:0,points:25},"Aidan Sezer":{apps:25,tries:4,goals:21,points:58},"Herman Ese’ese":{apps:14,tries:0,goals:0,points:0},"Amir Bourouh":{apps:27,tries:3,goals:0,points:12},"Harvie Hill":{apps:29,tries:2,goals:0,points:8},"Joe Batchelor":{apps:20,tries:7,goals:0,points:28},"Jed Cartwright":{apps:7,tries:1,goals:0,points:4},"John Asiata":{apps:6,tries:0,goals:0,points:0},"Cade Cust":{apps:21,tries:7,goals:0,points:28},"James Bell":{apps:18,tries:1,goals:0,points:4},"Sam Lisone":{apps:14,tries:1,goals:0,points:4},"Liam Knight":{apps:3,tries:0,goals:0,points:0},"Ligi Sao":{apps:14,tries:1,goals:0,points:4},"Tom Briscoe":{apps:24,tries:7,goals:0,points:28},"Yusuf Aydin":{apps:14,tries:2,goals:0,points:8},"Arthur Romano":{apps:15,tries:2,goals:0,points:8},"Connor Bailey":{apps:13,tries:1,goals:0,points:4},"Brad Fash":{apps:12,tries:0,goals:0,points:0},"Logan Moy":{apps:22,tries:6,goals:0,points:24},"Matty Laidlaw":{apps:8,tries:0,goals:0,points:0},"Hugo Salabio":{apps:12,tries:0,goals:0,points:0},"Callum Kemp":{apps:4,tries:0,goals:0,points:0},"Joe Phillips":{apps:0,tries:0,goals:0,points:0},"Will Hutchinson":{apps:5,tries:0,goals:0,points:0},"Will Kirby":{apps:4,tries:0,goals:0,points:0},"Ryan Westerman":{apps:0,tries:0,goals:0,points:0},"Lloyd Kemp":{apps:6,tries:1,goals:3,points:10},"Roman Dawson":{apps:0,tries:0,goals:0,points:0},"Joe Ward":{apps:0,tries:0,goals:0,points:0},"Ben Johnson":{apps:1,tries:0,goals:0,points:0},"Lennon Clark":{apps:8,tries:2,goals:0,points:8}
+  };
+  var fc2026PlayersFull = fc2026Players.map(function(x){var r=fcRLPStats[x[1]]||{apps:"—",tries:"—",goals:"—",points:"—"};return {number:x[0],name:x[1],position:x[2],status:fcDeparting2026.indexOf(x[1])>-1?"2026 — departing":"2026 squad",season:"2026",stats:{apps:r.apps,tries:r.tries,goals:r.goals,points:r.points,tackles:"—",metres:"—",rlp:true}};});
+  var fc2027Players = fc2026PlayersFull.filter(function(p){return fcDeparting2026.indexOf(p.name)===-1;}).map(function(p){var x=Object.assign({},p);x.season="2027";x.status="Retained for 2027";return x;});
+  fc2027Signings.forEach(function(x){fc2027Players.push({number:"—",name:x[0],position:x[1],status:x[2],season:"2027",stats:{apps:"—",tries:"—",points:"—",tackles:"—",metres:"—"}});});
+  var fcSeedPlayers = fc2027Players.slice();
+  var fcMatchdaySeed = {
+    id:"2026-09-11-leeds", date:"2026-09-11T20:00:00", home:"Leeds Rhinos", away:"Hull FC", venue:"AMT Headingley", status:"Completed",
+    rlpUrl:"https://www.rugbyleagueproject.org/seasons/super-league-2026/round-27/leeds-rhinos-vs-hull-fc/summary.html",
+    officialUrl:"https://www.hullfc.com/blog/2026/09/11/team-news-leeds-rhinos-vs-hull-fc-7/",
+    homeSquad:["4 Ash Handley","2 Maika Sivo","3 Harry Newman","33 Jack Bird","5 Ryan Hall","6 Brodie Croft","7 Jake Connor","8 Mikolaj Oledzki","9 Jarrod O'Connor","31 Matt Lodge","20 Presley Cassell","14 Chris Hankinson","13 Keenan Palasia","10 Tom Holroyd","11 Kallum Watkins","15 Cooper Jenkins","17 Cameron Smith"],
+    awaySquad:["24 Logan Moy","2 Harvey Barron","3 Davy Litten","19 Tom Briscoe","5 Lewis Martin","22 Connor Bailey","6 Jakob Arthur","8 Herman Ese'ese","32 Lloyd Kemp","10 Harvie Hill","21 Arthur Romano","39 Ethan O'Neill","15 James Bell","4 Zak Hardaker","25 Matty Laidlaw","26 Hugo Salabio","36 Lennon Clark"]
+  };
+
+  var fcSeedScores = [
+    {date:"2026-02-14T17:30:00",home:"Hull FC",away:"Bradford Bulls",homeScore:27,awayScore:20,status:"FT"},
+    {date:"2026-02-21T20:00:00",home:"Wigan Warriors",away:"Hull FC",homeScore:34,awayScore:6,status:"FT"},
+    {date:"2026-02-27T20:00:00",home:"Hull FC",away:"York Knights",homeScore:16,awayScore:17,status:"FT"},
+    {date:"2026-03-05T20:00:00",home:"Wakefield Trinity",away:"Hull FC",homeScore:14,awayScore:10,status:"FT"},
+    {date:"2026-03-14T17:30:00",home:"Leigh Leopards",away:"Hull FC",homeScore:16,awayScore:6,status:"FT"},
+    {date:"2026-03-22T15:00:00",home:"Hull FC",away:"Leeds Rhinos",homeScore:24,awayScore:16,status:"FT"},
+    {date:"2026-03-29T15:00:00",home:"Hull FC",away:"Catalans Dragons",homeScore:24,awayScore:20,status:"FT"},
+    {date:"2026-04-03T20:00:00",home:"Hull KR",away:"Hull FC",homeScore:24,awayScore:6,status:"FT"},
+    {date:"2026-04-16T20:00:00",home:"Hull FC",away:"St Helens",homeScore:14,awayScore:24,status:"FT"},
+    {date:"2026-04-24T20:00:00",home:"Castleford Tigers",away:"Hull FC",homeScore:10,awayScore:50,status:"FT"},
+    {date:"2026-05-03T15:00:00",home:"Hull FC",away:"Toulouse Olympique",homeScore:4,awayScore:12,status:"FT"},
+    {date:"2026-05-17T15:00:00",home:"Bradford Bulls",away:"Hull FC",homeScore:16,awayScore:14,status:"FT"},
+    {date:"2026-05-22T20:00:00",home:"Leigh Leopards",away:"Hull FC",homeScore:42,awayScore:6,status:"FT"},
+    {date:"2026-06-05T20:00:00",home:"Warrington Wolves",away:"Hull FC",homeScore:12,awayScore:4,status:"FT"},
+    {date:"2026-06-13T15:00:00",home:"Hull FC",away:"Huddersfield Giants",homeScore:36,awayScore:12,status:"FT"},
+    {date:"2026-06-19T20:00:00",home:"Hull FC",away:"Wakefield Trinity",homeScore:10,awayScore:36,status:"FT"},
+    {date:"2026-06-27T15:00:00",home:"Hull FC",away:"Wigan Warriors",homeScore:16,awayScore:20,status:"FT"},
+    {date:"2026-07-04T15:00:00",home:"Hull KR",away:"Hull FC",homeScore:26,awayScore:12,status:"FT"},
+    {date:"2026-07-09T20:00:00",home:"York Knights",away:"Hull FC",homeScore:20,awayScore:16,status:"FT"},
+    {date:"2026-07-18T17:30:00",home:"Hull FC",away:"Leigh Leopards",homeScore:22,awayScore:32,status:"FT"},
+    {date:"2026-07-23T20:00:00",home:"Hull FC",away:"Hull KR",homeScore:20,awayScore:34,status:"FT"},
+    {date:"2026-07-30T20:00:00",home:"Huddersfield Giants",away:"Hull FC",homeScore:22,awayScore:16,status:"FT"},
+    {date:"2026-08-06T20:00:00",home:"St Helens",away:"Hull FC",homeScore:18,awayScore:32,status:"FT"},
+    {date:"2026-08-14T20:00:00",home:"Hull FC",away:"Castleford Tigers",homeScore:14,awayScore:18,status:"FT"},
+    {date:"2026-08-22T21:00:00",home:"Catalans Dragons",away:"Hull FC",homeScore:26,awayScore:27,status:"FT"},
+    {date:"2026-08-29T17:30:00",home:"Hull FC",away:"Warrington Wolves",homeScore:14,awayScore:16,status:"FT"},
+    {date:"2026-09-04T19:00:00",home:"Toulouse Olympique",away:"Hull FC",homeScore:44,awayScore:30,status:"FT"},
+    {date:"2026-09-11T20:00:00",home:"Leeds Rhinos",away:"Hull FC",homeScore:12,awayScore:18,status:"FT"},
+    {date:"2027",text:"2027 fixtures and scores will appear here when published/played.",status:"Upcoming"}
+  ];
+  function fcEscape(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];});}
+  function fcSave(){saveState();}
+  function renderHull(){
+    var d=state.hullFC;
+    if(!d.news.length)d.news=fcSeedNews.slice();
+    if(!d.players.length)d.players=fcSeedPlayers.slice();
+    if(!d.scores.length)d.scores=fcSeedScores.slice();
+    document.getElementById("fcLastUpdate").textContent=d.lastRefresh?new Date(d.lastRefresh).toLocaleDateString("en-GB",{day:"2-digit",month:"short"}):"—";
+    document.getElementById("fcNewsCount").textContent=d.news.length;
+    document.getElementById("fcNewsList").innerHTML=d.news.slice().sort(function(a,b){return String(b.date).localeCompare(String(a.date));}).map(function(n){
+      return "<div class='fc-item'><div class='fc-item-top'><div><b>"+fcEscape(n.title)+"</b><div class='fc-meta'>"+fcEscape(n.type||"Update")+" · "+fcEscape(n.date||"")+"</div></div><span class='chip "+(n.type==="Signing"?"green":"grey")+"'>"+fcEscape(n.type||"Update")+"</span></div><p>"+fcEscape(n.text||"")+"</p>"+(n.url?"<div class='btn-row'><a class='btn ghost small' href='"+fcEscape(n.url)+"' target='_blank' rel='noopener' style='text-decoration:none'>Open source</a></div>":"")+"</div>";
+    }).join("");
+    document.getElementById("fcScoresList").innerHTML=d.scores.map(function(s){return "<div class='fc-item'><div class='fc-item-top'><b>"+fcEscape(s.text||"")+"</b><span class='chip grey'>"+fcEscape(s.status||"")+"</span></div><div class='fc-meta'>"+fcEscape(s.date||"")+"</div></div>";}).join("");
+    renderFCPlayers();
+    updateHomeHull();
+  }
+  function getFCPlayersForSeason(season){
+    return season==="2026"?fc2026PlayersFull:fc2027Players;
+  }
+  function renderFCPlayers(){
+    var season=document.getElementById("fcPlayerSeason").value||"2026";
+    var q=(document.getElementById("fcPlayerSearch").value||"").toLowerCase();
+    var players=getFCPlayersForSeason(season).filter(function(p){return !q||p.name.toLowerCase().includes(q)||String(p.position).toLowerCase().includes(q);});
+    var el=document.getElementById("fcPlayerList");
+    el.innerHTML=players.map(function(p,i){return "<div class='player-card' data-player='"+i+"'><div><b>"+(p.number!=="—"?p.number+" · ":"")+fcEscape(p.name)+"</b><span>"+fcEscape(p.position)+" · "+fcEscape(p.status)+"</span></div><span>View stats →</span></div>";}).join("") || "<div class='empty'>No matching players.</div>";
+    el.querySelectorAll(".player-card").forEach(function(card){card.addEventListener("click",function(){showFCProfile(players[Number(card.dataset.player)]);});});
+    document.getElementById("fcSquadNote").textContent=season==="2026"?"2026 = official squad numbers/check · departures are marked":"2027 = confirmed signings + players currently retained; final squad subject to further changes";
+    document.getElementById("fcSeason2026").classList.toggle("teal",season==="2026");
+    document.getElementById("fcSeason2026").classList.toggle("ghost",season!=="2026");
+    document.getElementById("fcSeason2027").classList.toggle("teal",season==="2027");
+    document.getElementById("fcSeason2027").classList.toggle("ghost",season!=="2027");
+  }
+  function showFCProfile(p){
+    var s=p.stats||{}; var el=document.getElementById("fcPlayerProfile"); el.style.display="";
+    var hasRLP=p.season==="2026" && s.rlp;
+    el.innerHTML="<div class='card' style='margin:0;background:var(--surface-2)'><div class='fc-item-top'><div><div class='hero-title' style='font-size:1.15rem'>"+fcEscape(p.name)+"</div><div class='fc-meta'>"+fcEscape(p.position)+" · "+fcEscape(p.status)+" · "+fcEscape(p.season)+(hasRLP?" · Rugby League Project":"")+"</div></div><button class='btn ghost small' id='fcCloseProfile'>Close</button></div><div class='stat-row' style='margin-top:12px'><div class='stat'><div class='num'>"+fcEscape(s.apps)+"</div><div class='lbl'>appearances</div></div><div class='stat'><div class='num'>"+fcEscape(s.tries)+"</div><div class='lbl'>tries</div></div></div><div class='stat-row' style='margin-top:10px'><div class='stat'><div class='num'>"+fcEscape(s.points)+"</div><div class='lbl'>points</div></div><div class='stat'><div class='num'>"+fcEscape(s.goals||"—")+"</div><div class='lbl'>goals</div></div></div><p class='hint' style='margin-bottom:0;margin-top:10px'>"+(hasRLP?"2026 figures are taken from the Rugby League Project Hull FC season summary. Tackles/metres are not supplied in that RLP table, so they are left blank rather than guessed.":"2027 competitive statistics are not available yet; the profile will remain blank until real season data exists.")+"</p>"+(hasRLP?"<div class='btn-row'><a class='btn ghost small' href='https://www.rugbyleagueproject.org/seasons/super-league-2026/hull-fc/summary.html' target='_blank' rel='noopener' style='text-decoration:none'>Open RLP player table</a></div>":"")+"</div>";
+    document.getElementById("fcCloseProfile").addEventListener("click",function(){el.style.display="none";});
+  }
+  function fcMatchdayFixtures(){
+    var all=(state.hullFC.scores||[]).filter(function(x){return x&&x.home&&x.away&&/Hull FC/i.test((x.home||"")+" "+(x.away||""));});
+    if(!all.some(function(x){return x.date===fcMatchdaySeed.date;})) all.push(fcMatchdaySeed);
+    return all.sort(function(a,b){return String(a.date).localeCompare(String(b.date));});
+  }
+  function renderFCMatchdayOptions(){
+    var sel=document.getElementById("fcMatchdayFixture"); if(!sel)return;
+    var fixtures=fcMatchdayFixtures();
+    sel.innerHTML=fixtures.map(function(f,i){return "<option value='"+i+"'>"+fcEscape(f.date?new Date(f.date).toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"}):"")+" · "+fcEscape(f.home)+" vs "+fcEscape(f.away)+(f.status?" · "+fcEscape(f.status):"")+"</option>";}).join("");
+    var latest=fixtures[fixtures.length-1]; if(latest)sel.value=String(fixtures.indexOf(latest));
+  }
+  function renderFCMatchday(){
+    var sel=document.getElementById("fcMatchdayFixture"), grid=document.getElementById("fcMatchdayGrid"), meta=document.getElementById("fcMatchdayMeta"); if(!sel||!grid)return;
+    var f=fcMatchdayFixtures()[Number(sel.value)]||fcMatchdaySeed;
+    var isSeed=f.id===fcMatchdaySeed.id, home=/Hull FC/i.test(f.home)?"Hull FC":f.home, away=/Hull FC/i.test(f.away)?"Hull FC":f.away;
+    var hs=f.homeSquad||[], as=f.awaySquad||[];
+    meta.innerHTML="<div class='fc-item'><b>"+fcEscape(f.home)+" vs "+fcEscape(f.away)+"</b><div class='fc-meta'>"+new Date(f.date).toLocaleString("en-GB",{weekday:"long",day:"2-digit",month:"long",year:"numeric",hour:"2-digit",minute:"2-digit"})+" · "+fcEscape(f.venue||"")+(f.homeScore!=null?" · Final: "+f.homeScore+"–"+f.awayScore:"")+"</div><div class='btn-row' style='margin-top:10px'><a class='btn ghost small' href='"+fcEscape(f.rlpUrl||"https://www.rugbyleagueproject.org/seasons/super-league-2026/hull-fc")+"' target='_blank' rel='noopener' style='text-decoration:none'>Open RLP lineup</a>"+(f.officialUrl?"<a class='btn ghost small' href='"+fcEscape(f.officialUrl)+"' target='_blank' rel='noopener' style='text-decoration:none'>Official team news</a>":"")+"</div></div>";
+    if(!hs.length||!as.length){grid.innerHTML="<div class='empty'>The selected fixture does not have a published 17-man lineup in the app yet. When team news is released, use the RLP/official links above and the lineup can be added here.</div>";document.getElementById("fcMatchdayStatus").textContent="Not published";return;}
+    function col(title,team,arr){return "<div class='card' style='margin:0'><div class='fc-item-top'><h2 style='margin:0'>"+fcEscape(title)+"</h2><span class='chip green'>17</span></div><div style='margin-top:10px'>"+arr.map(function(x,i){var parts=x.match(/^(\d+)\s+(.*)$/);return "<div style='padding:7px 0;border-bottom:1px solid var(--border)'><span class='fc-meta' style='display:inline-block;width:30px'>"+(parts?parts[1]:i+1)+"</span><b>"+fcEscape(parts?parts[2]:x)+"</b></div>";}).join("")+"</div></div>";}
+    grid.innerHTML=col(f.home,home,hs)+col(f.away,away,as);document.getElementById("fcMatchdayStatus").textContent=isSeed?"RLP + official":"RLP lineup";
+  }
+  function initFCMatchday(){renderFCMatchdayOptions();renderFCMatchday();document.getElementById("fcMatchdayLoad").addEventListener("click",renderFCMatchday);}
+
+  function fcBetResults(){return (state.hullFC.scores||[]).filter(function(x){return x&&x.home&&x.away&&x.homeScore!=null&&x.awayScore!=null;}).sort(function(a,b){return String(b.date||"").localeCompare(String(a.date||""));});}
+  function fcBetNextFixture(){var now=Date.now();return (state.hullFC.scores||[]).filter(function(x){var t=Date.parse(x&&x.date);return x&&x.home&&x.away&&!isNaN(t)&&t>=now-3600000;}).sort(function(a,b){return Date.parse(a.date)-Date.parse(b.date);})[0]||null;}
+  function fcBetForm(){var r=fcBetResults().filter(function(x){return /Hull FC/i.test((x.home||"")+" "+(x.away||""));}).slice(0,8);if(!r.length)return "—";return r.map(function(x){var hs=+x.homeScore,as=+x.awayScore,hh=/Hull FC/i.test(x.home),hf=hh?hs:as,ha=hh?as:hs;return hf>ha?"W":hf<ha?"L":"D";}).join("");}
+  function fcBetLinks(){return [["OddsChecker","https://www.oddschecker.com/rugby-league"],["Betfred","https://www.betfred.com/sports"],["Sky Bet","https://www.skybet.com/rugby-league"],["Betfair","https://www.betfair.com/sport/rugby-league"]].map(function(x){return "<a class='btn ghost small' href='"+x[1]+"' target='_blank' rel='noopener' style='text-decoration:none'>"+x[0]+"</a>";}).join(" ");}
+  function fcRenderBetting(fix){var el=document.getElementById("fcBetIdeas");if(!fix||!fix.home||!fix.away){el.innerHTML="<div class='empty'>No upcoming Hull FC fixture is currently listed. The board will switch to opponent-specific analysis when the next fixture is published.</div>";document.getElementById("fcBetOpponent").textContent="No fixture";document.getElementById("fcBetVenue").textContent="—";document.getElementById("fcBetForm").textContent=fcBetForm();return;}var home=/Hull FC/i.test(fix.home),opp=home?fix.away:fix.home,r=fcBetResults().filter(function(x){return /Hull FC/i.test((x.home||"")+" "+(x.away||""));}).slice(0,8),w=0,l=0,af=0,aa=0;r.forEach(function(x){var hs=+x.homeScore,as=+x.awayScore,hh=/Hull FC/i.test(x.home),hf=hh?hs:as,ha=hh?as:hs;af+=hf;aa+=ha;if(hf>ha)w++;else if(hf<ha)l++;});if(r.length){af/=r.length;aa/=r.length;}var h2h=fcBetResults().filter(function(x){return ((new RegExp("Hull FC","i").test(x.home)&&new RegExp(""+fcEscape(opp).replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"i").test(x.away))||(new RegExp("Hull FC","i").test(x.away)&&new RegExp(""+fcEscape(opp).replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"i").test(x.home)));}).slice(0,5);var h2hText=h2h.length?"RLP-sourced Hull FC meetings in the stored data: "+h2h.length+" match"+(h2h.length===1?"":"es")+"." : "No stored H2H sample for this opponent yet.";var ideas=r.length?[["Handicap market","Compare the bookmaker's live Hull FC handicap with the recent RLP form baseline: "+af.toFixed(1)+" points scored and "+aa.toFixed(1)+" conceded per match over the last "+r.length+" recorded games."],["Match total","Compare the live total with the combined recent Hull FC scoring baseline of "+(af+aa).toFixed(1)+" total points per game. This is a benchmark, not a prediction."],["Opponent-specific check",h2hText+" Use the H2H record alongside venue and the current handicap rather than relying on the straight result alone."]]:[["Check the handicap first","There is not enough recent RLP result data in the current snapshot for a form-based comparison."]];el.innerHTML="<div class='fc-item'><div class='fc-item-top'><div><b>Hull FC vs "+fcEscape(opp)+"</b><div class='fc-meta'>"+new Date(fix.date).toLocaleString("en-GB",{weekday:"short",day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})+" · "+(home?"Home":"Away")+" · Stats: Rugby League Project</div></div><span class='chip grey'>Analysis</span></div>"+ideas.map(function(i){return "<div style='margin-top:10px;padding:10px;border:1px solid var(--border);border-radius:12px'><b>"+fcEscape(i[0])+"</b><div class='hint' style='margin:4px 0 0'>"+fcEscape(i[1])+"</div></div>";}).join("")+"<div class='btn-row' style='margin-top:12px'>"+fcBetLinks()+"</div></div>";document.getElementById("fcBetOpponent").textContent=opp;document.getElementById("fcBetVenue").textContent=home?"Home":"Away";document.getElementById("fcBetForm").textContent=fcBetForm();}
+  async function fcRefreshBetting(){var b=state.hullFC.betting,status=document.getElementById("fcBetStatus");status.textContent="Updating betting board…";if(document.getElementById("fcBetOddsUrl").value.trim())b.oddsUrl=document.getElementById("fcBetOddsUrl").value.trim();if(b.oddsUrl){try{var r=await fetch(b.oddsUrl,{cache:"no-store"});if(!r.ok)throw 0;var j=await r.json();b.odds=Array.isArray(j)?j:(j.odds||j.events||[]);status.textContent="Odds feed checked successfully.";}catch(e){status.textContent="Odds feed unavailable; analysis still uses FC fixture/form data.";}}else status.textContent="No JSON odds feed configured. Use the live bookmaker links for current prices.";b.lastRefresh=new Date().toISOString();saveState();document.getElementById("fcBetUpdated").textContent="Checked "+new Date(b.lastRefresh).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});fcRenderBetting(fcBetNextFixture());}
+  function initFCBetting(){var b=state.hullFC.betting;document.getElementById("fcBetOddsUrl").value=b.oddsUrl||"";document.getElementById("fcBetRefreshMins").value=String(b.refreshMins||1440);fcRenderBetting(fcBetNextFixture());if(b.lastRefresh)document.getElementById("fcBetUpdated").textContent="Checked "+new Date(b.lastRefresh).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});if(!b.lastRefresh||Date.now()-Date.parse(b.lastRefresh)>Number(b.refreshMins||1440)*60000)fcRefreshBetting();}
+  document.getElementById("fcBetRefreshBtn").addEventListener("click",fcRefreshBetting);document.getElementById("fcBetSaveSettings").addEventListener("click",function(){state.hullFC.betting.oddsUrl=document.getElementById("fcBetOddsUrl").value.trim();state.hullFC.betting.refreshMins=Number(document.getElementById("fcBetRefreshMins").value)||1440;saveState();fcRefreshBetting();});
+  async function refreshHullFC(){
+    var status=document.getElementById("fcStatus"); status.textContent="Refreshing Hull FC snapshot…";
+    // A standalone local HTML file cannot reliably scrape the club site because of browser CORS.
+    // We keep the cache local and open authoritative sources for live browsing.
+    state.hullFC.lastRefresh=new Date().toISOString();
+    if(!state.hullFC.news.length)state.hullFC.news=fcSeedNews.slice();
+    if(!state.hullFC.players.length)state.hullFC.players=fcSeedPlayers.slice();
+    if(!state.hullFC.scores.length)state.hullFC.scores=fcSeedScores.slice();
+    fcSave(); renderHull();
+    status.innerHTML="Snapshot refreshed. Stats source: <a href='https://www.rugbyleagueproject.org/seasons/super-league-2026/hull-fc/summary.html' target='_blank' rel='noopener' style='color:var(--teal-ink)'>Rugby League Project</a>.";
+  }
+  document.querySelectorAll(".fc-tabs button").forEach(function(b){b.addEventListener("click",function(){document.querySelectorAll(".fc-tabs button").forEach(function(x){x.classList.remove("active")});document.querySelectorAll(".fc-panel").forEach(function(x){x.classList.remove("active")});b.classList.add("active");document.getElementById("fc-panel-"+b.dataset.fcPanel).classList.add("active");});});
+  document.getElementById("fcRefreshBtn").addEventListener("click",refreshHullFC);
+  document.getElementById("fcOfficialBtn").addEventListener("click",function(){window.open(FC_OFFICIAL_NEWS,"_blank","noopener");});
+  document.getElementById("fcPlayerSearch").addEventListener("input",renderFCPlayers);
+  document.getElementById("fcPlayerSeason").addEventListener("change",function(){document.getElementById("fcPlayerProfile").style.display="none";renderFCPlayers();});
+  document.getElementById("fcSeason2026").addEventListener("click",function(){document.getElementById("fcPlayerSeason").value="2026";document.getElementById("fcPlayerProfile").style.display="none";renderFCPlayers();});
+  document.getElementById("fcSeason2027").addEventListener("click",function(){document.getElementById("fcPlayerSeason").value="2027";document.getElementById("fcPlayerProfile").style.display="none";renderFCPlayers();});
+  function openConsoleTab(tab){
+    var b=document.querySelector('nav.panel button[data-tab="'+tab+'"]');
+    if(b)b.click();
+  }
+  document.querySelectorAll(".home-tile").forEach(function(b){b.addEventListener("click",function(){openConsoleTab(b.dataset.homeTab);});});
+  function updateHomeHull(){
+    var el=document.getElementById("homeHullUpdate");
+    if(el)el.textContent=state.hullFC.lastRefresh?new Date(state.hullFC.lastRefresh).toLocaleDateString("en-GB",{day:"2-digit",month:"short"}):"—";
+  }
+  function updateHomeStats(){
+    var today=new Date();today.setHours(0,0,0,0);
+    var upcoming=state.shifts.filter(function(s){return new Date(s.date+"T00:00:00")>=today && !(s.loc||"").toLowerCase().includes("leave");}).sort(function(a,b){return a.date.localeCompare(b.date)||String(a.start).localeCompare(String(b.start));});
+    var ws=weekStart(today),we=new Date(ws);we.setDate(we.getDate()+6);
+    var w=state.shifts.filter(function(s){return s.date>=isoLocalDate(ws)&&s.date<=isoLocalDate(we);}).reduce(function(a,s){return a+hoursBetween(s.start,s.end);},0);
+    var a=document.getElementById("homeNextShift"),b=document.getElementById("homeWeekHours");
+    if(a)a.textContent=upcoming[0]?fmtDate(upcoming[0].date):"—"; if(b)b.textContent=fmtHrs(w)+"h"; var hd=document.getElementById("homeDate"); if(hd)hd.textContent=today.toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"}); updateHomeHull();
+  }
+  (function fcWeeklyRefresh(){
+    var last=state.hullFC.lastRefresh?new Date(state.hullFC.lastRefresh).getTime():0;
+    var week=7*24*60*60*1000;
+    if(!last||Date.now()-last>week) refreshHullFC();
+    else renderHull();
+  })();
+
+  initFCBetting();
+  initFCMatchday();
+
+  // ---------- Money AI sorter ----------
+  function moneyAISortLine(line){
+    var t=String(line||"").trim(); if(!t)return null;
+    var m=t.match(/(?:£\s*|GBP\s*)?(\d+(?:\.\d{1,2})?)/i); if(!m)return null;
+    var amount=parseFloat(m[1]);
+    var low=t.toLowerCase();
+    var cat="Other";
+    if(/petrol|diesel|fuel|esso|shell|bp|tesco.*fuel/i.test(low))cat="Fuel";
+    else if(/food|mcdonald|kfc|burger|pizza|restaurant|takeaway|greggs|meal|coffee|grocer|aldi|lidl|asda|tesco(?!.*fuel)/i.test(low))cat="Food";
+    else if(/taxi|uber|bus|train|parking|travel|transport/i.test(low))cat="Transport";
+    else if(/netflix|spotify|cinema|pub|bar|game|gaming|leisure|holiday/i.test(low))cat="Leisure";
+    else if(/rent|mortgage|housing/i.test(low))cat="Rent/Housing";
+    else if(/bill|insurance|phone|broadband|electric|gas|water|council|subscription/i.test(low))cat="Bills";
+    else if(/save|savings/i.test(low))cat="Savings";
+    var clean=t.replace(/^(spent|paid|bought)\s*/i,"").trim();
+    return {date:new Date().toISOString().slice(0,10),type:/\b(refund|salary|wage|paid me|received|income)\b/i.test(low)?"income":"expense",amount:amount,category:cat,note:clean};
+  }
+  function renderMoneyAI(){
+    var input=document.getElementById("moneyAIInput"),out=document.getElementById("moneyAIResult");
+    var lines=input.value.split(/\n|;|\.(?=\s*(?:£|spent|paid|bought))/i).map(function(x){return x.trim();}).filter(Boolean);
+    var rows=lines.map(moneyAISortLine).filter(Boolean);
+    if(!rows.length){out.innerHTML="<div class='ai-action'><div><b>Tell me what you spent</b><span>Example: £24.50 on food at Tesco</span></div></div>";return;}
+    out.innerHTML=rows.map(function(a,i){return "<div class='ai-action'><div><b>"+(a.type==="income"?"Income":"Expense")+" · "+fmtMoney(a.amount)+" · "+fcEscape(a.category)+"</b><span>"+fcEscape(a.note)+" · "+fmtDate(a.date)+"</span></div><button class='btn small teal moneyAIAdd' data-i='"+i+"'>Add</button></div>";}).join("");
+    out.querySelectorAll(".moneyAIAdd").forEach(function(btn){btn.addEventListener("click",function(){var a=rows[Number(btn.dataset.i)];state.transactions.push(a);saveState();renderFinance();btn.textContent="Added ✓";btn.disabled=true;});});
+  }
+  document.getElementById("moneyAIAnalyseBtn").addEventListener("click",renderMoneyAI);
+  document.getElementById("moneyAIClearBtn").addEventListener("click",function(){document.getElementById("moneyAIInput").value="";document.getElementById("moneyAIResult").innerHTML="";});
+
+  // ---------- Money autopilot ----------
+  function monthKey(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");}
+  function moneyUpcomingBills(days){
+    var now=new Date(); now.setHours(0,0,0,0); var end=new Date(now); end.setDate(end.getDate()+days);
+    var total=0, rows=[];
+    state.bills.forEach(function(b){
+      var amt=parseFloat(b.amount)||0, freq=b.freq||"monthly";
+      if(!amt)return;
+      if(freq==="weekly"){var first=new Date(now); var dow=first.getDay(); var due=parseInt(b.dueDay)||dow; var delta=(due-dow+7)%7; first.setDate(first.getDate()+delta); while(first<=end){total+=amt;rows.push({name:b.name,amount:amt,date:new Date(first)});first.setDate(first.getDate()+7);}}
+      else if(freq==="annual"){var day=parseInt(b.dueDay)||1; var x=new Date(now.getFullYear(),now.getMonth(),day); if(x<now)x.setFullYear(x.getFullYear()+1); if(x<=end){total+=amt;rows.push({name:b.name,amount:amt,date:x});}}
+      else {var day2=parseInt(b.dueDay)||1; var x2=new Date(now.getFullYear(),now.getMonth(),day2); if(x2<now)x2.setMonth(x2.getMonth()+1); while(x2<=end){total+=amt;rows.push({name:b.name,amount:amt,date:new Date(x2)});x2.setMonth(x2.getMonth()+1);}}
+    });
+    return {total:total,rows:rows.sort(function(a,b){return a.date-b.date;})};
+  }
+  function moneyRotaPay(){
+    var rate=parseFloat(state.moneySettings.hourlyRate)||0;if(!rate)return 0;
+    var now=new Date();now.setHours(0,0,0,0);var end=new Date(now);end.setDate(end.getDate()+30);
+    return state.shifts.filter(function(s){return s.date>=isoLocalDate(now)&&s.date<=isoLocalDate(end)&&!(s.loc||"").toLowerCase().includes("leave");}).reduce(function(a,s){return a+hoursBetween(s.start,s.end)*rate;},0);
+  }
+  function renderMoneyAutopilot(){
+    var now=new Date(), ym=monthKey(now);
+    var tx=state.transactions.filter(function(t){return t.date.slice(0,7)===ym;});
+    var balance=tx.reduce(function(a,t){return a+(t.type==="income"?t.amount:-t.amount);},0);
+    var bills=moneyUpcomingBills(30), pay=moneyRotaPay();
+    document.getElementById("money30d").textContent=fmtMoney(balance+pay-bills.total);
+    document.getElementById("moneyBills").textContent=fmtMoney(bills.total);
+    document.getElementById("moneyPay").textContent=fmtMoney(pay);
+    var alerts=[];Object.keys(state.budgets).forEach(function(cat){var cap=parseFloat(state.budgets[cat])||0;if(!cap)return;var spent=state.transactions.filter(function(t){return t.type==="expense"&&t.category===cat&&t.date.slice(0,7)===ym;}).reduce(function(a,t){return a+t.amount;},0);if(spent/cap>=.8)alerts.push(cat+" "+Math.round(spent/cap*100)+"%");});
+    var guard=document.getElementById("moneyGuard");guard.textContent=alerts.length?alerts.join(" · "):"No alerts";guard.className="chip "+(alerts.length?"yellow":"green");
+    var sg=state.savingsGoal||{};var pace="Set a goal";
+    if((parseFloat(sg.target)||0)>0){var remain=Math.max(0,(parseFloat(sg.target)||0)-(parseFloat(sg.current)||0));pace=fmtMoney(remain)+" left";} document.getElementById("moneySavingPace").textContent=pace;
+    document.getElementById("moneyAutomationResult").innerHTML=bills.rows.length?"<p class='hint' style='margin:0'>Next bills: "+bills.rows.slice(0,4).map(function(r){return fcEscape(r.name)+" "+fmtMoney(r.amount)+" on "+r.date.toLocaleDateString("en-GB",{day:"numeric",month:"short"});}).join(" · ")+"</p>":"<p class='hint' style='margin:0'>No bills forecast in the next 30 days.</p>";
+  }
+  document.getElementById("moneyRunBtn").addEventListener("click",function(){renderMoneyAutopilot();});
+  document.getElementById("moneyRateBtn").addEventListener("click",function(){var v=prompt("Hourly rate (£/hr) used for rota pay estimates:",state.moneySettings.hourlyRate||"");if(v!==null){var n=parseFloat(v);if(isFinite(n)&&n>0){state.moneySettings.hourlyRate=n;saveState();renderMoneyAutopilot();}}});
+  var originalRenderFinance=renderFinance;
+  renderFinance=function(){originalRenderFinance();renderMoneyAutopilot();};
+
+  // ---------- init ----------
+  renderShifts();
+  renderFinance();
+  renderBudgetInputs();
+  renderSavingsGoal();
+  renderFuel();
+  renderLocalPrices();
+  renderBills();
+  renderNetWorth();
+  renderNotes();
+  updateHomeStats();
+  saveState();
+})();
+</script>
+</body>
+</html>
